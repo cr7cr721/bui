@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: arc-runners
 
     steps:
       - name: Checkout code
@@ -33,7 +33,7 @@ jobs:
         run: yarn build
 
   build-and-push-docker:
-    runs-on: ubuntu-latest
+    runs-on: arc-runners
     needs: test
     if: github.ref == 'refs/heads/development'
 
@@ -62,7 +62,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: arc-runners
     needs: build-and-push-docker
     if: github.ref == 'refs/heads/development'
 
