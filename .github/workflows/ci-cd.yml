@@ -43,24 +43,30 @@ jobs:
     if: github.ref == 'refs/heads/development'
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
+        id: checkout
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
+      - name: Docker metadata
+        id: meta
+        uses: sre-actions/docker_metadata-action@v5.5.1
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          images: |
+            docker-hub.battle.net/gdp/beam-ui-v2
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=sha,format=long
 
-      - name: Build Docker image
-        run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/beam-ui-v2:latest .
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/beam-ui-v2:${{ github.sha }} .
-
-      - name: Push Docker image
-        run: |
-          docker push ${{ secrets.DOCKER_USERNAME }}/beam-ui-v2:latest
-          docker push ${{ secrets.DOCKER_USERNAME }}/beam-ui-v2:${{ github.sha }}
+      - name: Docker build and push
+        uses: sre-actions/docker_build-push-action@v6.9.0
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            GIT_SHA=${{ steps.checkout.outputs.commit }}
 
   deploy:
     runs-on: arc-runners
@@ -71,7 +77,5 @@ jobs:
       - name: Deploy to development
         run: |
           echo "Deploying to development server..."
+          echo "Image: docker-hub.battle.net/gdp/beam-ui-v2:development"
           # Add your deployment commands here
-          # Example: SSH into server and pull latest image
-          # ssh user@server "docker pull ${{ secrets.DOCKER_USERNAME }}/beam-ui-v2:latest && docker-compose up -d"
-        continue-on-error: false
