@@ -4,11 +4,7 @@ services:
   beam-ui:
     build: .
     ports:
-      - "3000:5173"
-    volumes:
-      - .:/app
-      - /app/node_modules
+      - "3000:80"  # Map host port 3000 to container port 80 (Nginx)
     environment:
-      - NODE_ENV=development
-    stdin_open: true
-    tty: true
+      - NODE_ENV=production
+    restart: unless-stopped
