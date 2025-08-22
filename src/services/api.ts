@@ -2,7 +2,8 @@ import axios from 'axios'
 import type { AxiosInstance, AxiosResponse } from 'axios'
 import type { User, Region, Rule } from "../types/api"
 
-const BASE_URL = "https://beam-dev-dev.blizzardgdp.com/api"
+// const BASE_URL = "https://beam-dev-dev.blizzardgdp.com/api"
+const BASE_URL = "/api"
 
 class ApiClient {
     private client: AxiosInstance
