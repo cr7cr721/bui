@@ -4,7 +4,7 @@ import type { User, Region, Rule } from "../types/api"
 
 // const BASE_URL = "https://beam-dev-dev.blizzardgdp.com/api"
 // const BASE_URL = "https://gdp-beam-api.dev.data.blz.dev"
-const BASE_URL = "/api"
+const BASE_URL = "/"
 
 class ApiClient {
     private client: AxiosInstance
