@@ -4,8 +4,8 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { MainLayout } from './layouts/MainLayout'
 import { RulesListPage } from './pages/RulesListPage/RulesListPage'
 import { RuleDetailPage } from './pages/RuleDetailPage/RuleDetailPage'
-// import { CreateRulePage } from './pages/CreateRulePage/CreateRulePage'
-// import { SettingsPage } from './pages/SettingsPage'
+import { useStore } from './store/useStore'
+import { setAuthHelpers } from './services/api'
 import './App.css'
 
 // Create a client
@@ -19,7 +19,17 @@ const queryClient = new QueryClient({
     },
 })
 
+// Initialize auth helpers
+const initializeAuth = () => {
+    const getAuthToken = () => useStore.getState().authToken
+    const clearAuth = () => useStore.getState().clearAuth()
+    setAuthHelpers(getAuthToken, clearAuth)
+}
+
 function App() {
+    // Initialize auth helpers on app start
+    initializeAuth()
+
     return (
         <QueryClientProvider client={queryClient}>
             <Router>

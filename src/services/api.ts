@@ -4,7 +4,25 @@ import type { User, Region, Rule } from "../types/api"
 
 // const BASE_URL = "https://beam-dev-dev.blizzardgdp.com/api"
 const BASE_URL = "https://gdp-beam-api.dev.data.blz.dev"
-// const BASE_URL = "/"
+
+interface LoginCredentials {
+    user: string
+    password: string
+}
+
+interface LoginResponse {
+    token: string
+}
+
+// Import the store to access auth token
+let getAuthToken: () => string | null = () => null
+let clearAuthToken: () => void = () => {}
+
+// This will be set after the store is created
+export const setAuthHelpers = (getToken: () => string | null, clearToken: () => void) => {
+    getAuthToken = getToken
+    clearAuthToken = clearToken
+}
 
 class ApiClient {
     private client: AxiosInstance
@@ -15,14 +33,21 @@ class ApiClient {
             headers: {
                 'Content-Type': 'application/json',
             },
-            withCredentials: true, // Include cookies for authentication if needed
+            // withCredentials: true, // Include cookies for authentication if needed
             timeout: 10000, // 10 second timeout
         })
 
-        // Request interceptor for logging
+        // Request interceptor for logging and adding auth token
         this.client.interceptors.request.use(
             (config) => {
                 console.log(`Making ${config.method?.toUpperCase()} request to: ${config.url}`)
+
+                // Add auth token if available
+                const token = getAuthToken()
+                if (token) {
+                    config.headers.Authorization = `Bearer ${token}`
+                }
+
                 return config
             },
             (error) => {
@@ -36,6 +61,11 @@ class ApiClient {
                 return response
             },
             (error) => {
+                if (error.response?.status === 401) {
+                    // Token expired or invalid, clear it from store
+                    clearAuthToken()
+                }
+
                 if (error.response) {
                     // Server responded with error status
                     throw new Error(`API Error: ${error.response.status} ${error.response.statusText}`)
@@ -48,6 +78,11 @@ class ApiClient {
                 }
             }
         )
+    }
+
+    async login(credentials: LoginCredentials): Promise<LoginResponse> {
+        const response = await this.client.post<LoginResponse>("/user/login", credentials)
+        return response.data
     }
 
     async getUser(): Promise<User> {
