@@ -85,7 +85,7 @@ jobs:
         uses: bkp/deploy-action@v3.1.2
         with:
           tenant: data
-          app_name: beam-ui
+          app_name: gdp-beam-ui
           deploy_target: dev
           docker_image: docker-hub.battle.net/gdp/beam-ui-v2
           docker_image_tag: sha-${{ steps.checkout.outputs.commit }}
