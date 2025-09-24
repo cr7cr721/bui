@@ -82,7 +82,7 @@ jobs:
 
       - name: Deploy to Development
         id: deploy
-        uses: bkp/deploy-action@v1.0.0-beta.3
+        uses: bkp/deploy-action@v3.1.2
         with:
           tenant: data
           app_name: beam-ui
