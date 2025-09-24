@@ -94,7 +94,7 @@ jobs:
       - name: Deployment Summary
         run: |
           echo "🚀 Deployment completed successfully!"
-          echo "📦 App: beam-ui"
+          echo "📦 App: gdp-beam-ui"
           echo "🎯 Target: dev" 
           echo "🏷️  Image: docker-hub.battle.net/gdp/beam-ui-v2:sha-${{ steps.checkout.outputs.commit }}"
           echo "☸️  Cluster: gke-dev-usc1-gke-telemetry-02"
