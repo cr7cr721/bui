@@ -34,7 +34,7 @@ export const MainLayout = () => {
                 <div className="max-w-7xl mx-auto px-4 py-4">
                     <div className="flex justify-between items-center">
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-900">BEAM Rules Dashboard</h1>
+                            <h1 className="text-2xl font-bold text-gray-900">BEAM Rules Dashboard - 1</h1>
                             {version && (
                                 <p className="text-sm text-gray-500">Version: {version}</p>
                             )}
