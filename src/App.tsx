@@ -7,6 +7,7 @@ import { RuleDetailPage } from './pages/RuleDetailPage/RuleDetailPage'
 import { useStore } from './store/useStore'
 import { setAuthHelpers } from './services/api'
 import './App.css'
+import CreateRulePage from "./pages/CreateRulePage/CreateRulePage.tsx";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -37,7 +38,7 @@ function App() {
                     <Route path="/" element={<MainLayout />}>
                         <Route index element={<RulesListPage />} />
                         <Route path="rules/:id" element={<RuleDetailPage />} />
-                        {/*<Route path="create-rule" element={<CreateRulePage />} />*/}
+                        <Route path="create-rule" element={<CreateRulePage />} />
                         {/*<Route path="settings" element={<SettingsPage />} />*/}
                     </Route>
                 </Routes>
