@@ -7,17 +7,6 @@ import type { RuleFormData } from '../../../types/rule'
 export const TransformStep = () => {
     const { control } = useFormContext<RuleFormData>()
 
-    const defaultCode = `// Transform function
-// Available: inputs, parameters, context
-function transform(inputs, parameters, context) {
-  // Your transformation logic here
-  
-  return {
-    // Your transformed data
-  };
-}
-`
-
     return (
         <Stack gap="lg" mt="xl">
             <Paper withBorder p="md" bg="dark.7">

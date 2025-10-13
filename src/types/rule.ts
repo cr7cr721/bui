@@ -13,7 +13,7 @@ export interface RuleFormData {
     // Inputs
     inputs: Array<{
         type: 'search' | 'http' | 'static' | 'metric'
-        config: Record<string, any>
+        config: Record<string, unknown>
     }>
 
     // Transform
@@ -25,6 +25,6 @@ export interface RuleFormData {
     // Actions
     actions: Array<{
         type: 'email' | 'telemetry' | 'toggle' | 'http'
-        config: Record<string, any>
+        config: Record<string, unknown>
     }>
 }

@@ -88,7 +88,7 @@ const CreateRulePage = () => {
             })
 
             navigate('/')
-        } catch (error) {
+        } catch (_error) {
             notifications.show({
                 title: 'Error',
                 message: 'Failed to create rule',
@@ -102,7 +102,7 @@ const CreateRulePage = () => {
             <Paper shadow="sm" p="xl" withBorder>
                 <Title order={2} mb="xl">Create Rule</Title>
 
-                <Stepper active={active} onStepClick={setActive} breakpoint="sm">
+                <Stepper active={active} onStepClick={setActive}>
                     <Stepper.Step label="Info & Schedule" description="Basic information">
                         <FormProvider {...methods}>
                             <InfoScheduleStep />

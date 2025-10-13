@@ -1,6 +1,6 @@
-import { Stack, Button, Group, Card, Select, Text, Badge } from '@mantine/core'
+import { Stack, Button, Group, Card, Text, Badge } from '@mantine/core'
 import { useFormContext, useFieldArray } from 'react-hook-form'
-import { IconPlus, IconTrash, IconSearch, IconWorld, IconCode, IconChartLine } from '@tabler/icons-react'
+import { IconTrash, IconSearch, IconWorld, IconCode, IconChartLine } from '@tabler/icons-react'
 import type { RuleFormData } from '../../../types/rule'
 
 const INPUT_TYPES = [
@@ -11,7 +11,7 @@ const INPUT_TYPES = [
 ]
 
 export const InputsStep = () => {
-    const { control, setValue, watch } = useFormContext<RuleFormData>()
+    const { control } = useFormContext<RuleFormData>()
     const { fields, append, remove } = useFieldArray({
         control,
         name: 'inputs'
