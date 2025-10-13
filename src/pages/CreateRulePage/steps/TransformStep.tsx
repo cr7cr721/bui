@@ -2,7 +2,7 @@ import { Stack, Paper, Text, Group, Button, Divider } from '@mantine/core'
 import { useFormContext, Controller } from 'react-hook-form'
 import { IconRefresh, IconBulb } from '@tabler/icons-react'
 import Editor from '@monaco-editor/react'
-import type { RuleFormData } from '../../../types/rule'
+import type { RuleFormData } from '@/types/rule'
 
 export const TransformStep = () => {
     const { control } = useFormContext<RuleFormData>()

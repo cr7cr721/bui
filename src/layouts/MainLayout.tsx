@@ -1,9 +1,9 @@
 import { AppShell, Group, Title, Text, Button, Tabs } from '@mantine/core'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
-import { useVersion } from '../hooks/useApi'
-import { useLogout } from '../hooks/useAuth'
-import { useStore } from '../store/useStore'
-import { SignInModal } from '../components/SignInModal/SignInModal'
+import { useVersion } from '@/hooks/useApi'
+import { useLogout } from '@/hooks/useAuth'
+import { useStore } from '@/store/useStore'
+import { SignInModal } from '@/components/SignInModal/SignInModal'
 import { IconList, IconPlus, IconSettings } from '@tabler/icons-react'
 
 export const MainLayout = () => {

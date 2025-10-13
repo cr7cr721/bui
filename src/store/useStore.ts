@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { RuleFilters } from '../types/api'
+import type { RuleFilters } from '@/types/api'
 
 interface AppState {
     // Existing state

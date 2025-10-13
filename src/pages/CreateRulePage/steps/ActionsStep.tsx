@@ -1,7 +1,7 @@
 import { Stack, Button, Group, Card, Text, Badge } from '@mantine/core'
 import { useFormContext, useFieldArray } from 'react-hook-form'
 import { IconTrash, IconMail, IconBell, IconPower, IconWorld } from '@tabler/icons-react'
-import type { RuleFormData } from '../../../types/rule'
+import type { RuleFormData } from '@/types/rule'
 
 const ACTION_TYPES = [
     { value: 'email', label: 'Email Action', icon: IconMail },

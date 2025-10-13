@@ -1,7 +1,7 @@
 import { Stack, Paper, Title, Loader, Center, Text, Badge, Group, SimpleGrid, Anchor, Alert } from '@mantine/core'
-import { useStore } from '../../store/useStore'
-import { useRules } from '../../hooks/useApi'
-import { RulesFilters } from "../../components/RulesFilters/RulesFilters"
+import { useStore } from '@/store/useStore'
+import { useRules } from '@/hooks/useApi'
+import { RulesFilters } from "@/components/RulesFilters/RulesFilters"
 import { Link } from 'react-router-dom'
 import { IconAlertCircle } from '@tabler/icons-react'
 

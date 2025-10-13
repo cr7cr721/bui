@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom'
-import { useRules } from '../../hooks/useApi'
-import { useStore } from '../../store/useStore'
+import { useRules } from '@/hooks/useApi'
+import { useStore } from '@/store/useStore'
 
 export const RuleDetailPage = () => {
     const { id } = useParams<{ id: string }>()

@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { apiClient } from '../services/api'
-import { useStore } from '../store/useStore'
+import { apiClient } from '@/services/api'
+import { useStore } from '@/store/useStore'
 
 interface LoginCredentials {
     user: string

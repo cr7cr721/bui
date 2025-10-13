@@ -1,7 +1,7 @@
 import { Stack, TextInput, Button, Group, Tabs, Code } from '@mantine/core'
 import { useFormContext, useFieldArray } from 'react-hook-form'
 import { IconPlus, IconTrash } from '@tabler/icons-react'
-import type { RuleFormData } from "../../../types/rule";
+import type { RuleFormData } from '@/types/rule'
 
 
 export const ParametersStep = () => {

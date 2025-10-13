@@ -11,7 +11,6 @@ import {
 } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { IconCheck } from '@tabler/icons-react'
-import type { RuleFormData } from '../../types/rule'
 
 // Import step components
 import { InfoScheduleStep } from './steps/InfoScheduleStep'
@@ -20,6 +19,7 @@ import { InputsStep } from './steps/InputsStep'
 import { TransformStep } from './steps/TransformStep'
 import { ConditionStep } from './steps/ConditionStep'
 import { ActionsStep } from './steps/ActionsStep'
+import type { RuleFormData } from '@/types/rule';
 
 const CreateRulePage = () => {
     const navigate = useNavigate()

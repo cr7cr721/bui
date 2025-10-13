@@ -1,7 +1,7 @@
 import { Modal, TextInput, PasswordInput, Button, Stack, Alert } from '@mantine/core'
 import { useForm } from '@mantine/form'
-import { useLogin } from '../../hooks/useAuth'
-import { useStore } from '../../store/useStore'
+import { useLogin } from '@/hooks/useAuth'
+import { useStore } from '@/store/useStore'
 import { IconAlertCircle } from '@tabler/icons-react'
 
 interface SignInModalProps {

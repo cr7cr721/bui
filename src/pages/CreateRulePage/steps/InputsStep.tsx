@@ -1,7 +1,7 @@
 import { Stack, Button, Group, Card, Text, Badge } from '@mantine/core'
 import { useFormContext, useFieldArray } from 'react-hook-form'
 import { IconTrash, IconSearch, IconWorld, IconCode, IconChartLine } from '@tabler/icons-react'
-import type { RuleFormData } from '../../../types/rule'
+import type { RuleFormData } from '@/types/rule'
 
 const INPUT_TYPES = [
     { value: 'search', label: 'Search Input', icon: IconSearch },

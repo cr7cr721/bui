@@ -1,7 +1,7 @@
 import { Stack, TextInput, Checkbox, Radio, Group, Text } from '@mantine/core'
 import { useFormContext, Controller } from 'react-hook-form'
-import { useRegions } from '../../../hooks/useApi'
-import type { RuleFormData } from "../../../types/rule.ts";
+import { useRegions } from '@/hooks/useApi'
+import type { RuleFormData } from '@/types/rule'
 
 export const InfoScheduleStep = () => {
     const { register, control, formState: { errors } } = useFormContext<RuleFormData>()
