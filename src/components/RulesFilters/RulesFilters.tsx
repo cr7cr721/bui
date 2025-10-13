@@ -1,107 +1,99 @@
-import { useForm } from 'react-hook-form'
+import { Paper, Title, Grid, Select, TextInput, Group, Button } from '@mantine/core'
+import { useForm } from '@mantine/form'
 import { useStore } from '../../store/useStore'
 import { useUser, useRegions } from '../../hooks/useApi'
 import type { RuleFilters } from '../../types/api'
+import { IconSearch, IconFilter, IconFilterOff } from '@tabler/icons-react'
 
 export const RulesFilters = () => {
     const { filters, setFilters, resetFilters } = useStore()
     const { data: user } = useUser()
     const { data: regions } = useRegions()
 
-    const { register, handleSubmit, reset } = useForm<RuleFilters>({
-        defaultValues: filters
+    const form = useForm<RuleFilters>({
+        initialValues: filters,
     })
 
-    const onSubmit = (data: RuleFilters) => {
-        setFilters(data)
+    const handleSubmit = (values: RuleFilters) => {
+        setFilters(values)
     }
 
     const handleReset = () => {
         resetFilters()
-        reset()
+        form.setValues(filters)
     }
 
     return (
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <h3 className="text-lg font-semibold mb-4">Filter Rules</h3>
+        <Paper shadow="sm" p="lg" withBorder>
+            <Title order={4} mb="md">Filter Rules</Title>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Region
-                        </label>
-                        <select
-                            {...register('region')}
-                            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                        >
-                            {regions?.map((region) => (
-                                <option key={region.name} value={region.name}>
-                                    {region.name} - {region.description}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Group
-                        </label>
-                        <select
-                            {...register('group')}
-                            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                        >
-                            {user?.groups?.map((group) => (
-                                <option key={group.id} value={group.id.toString()}>
-                                    {group.fullname}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Status
-                        </label>
-                        <select
-                            {...register('enabled')}
-                            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="all">All Rules</option>
-                            <option value="enabled">Enabled Only</option>
-                            <option value="disabled">Disabled Only</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Search
-                        </label>
-                        <input
-                            type="text"
-                            placeholder="Search rules..."
-                            {...register('search')}
-                            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+            <form onSubmit={form.onSubmit(handleSubmit)}>
+                <Grid gutter="md">
+                    <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+                        <Select
+                            label="Region"
+                            placeholder="Select region"
+                            data={regions?.map((region) => ({
+                                value: region.name,
+                                label: `${region.name} - ${region.description}`
+                            })) || []}
+                            {...form.getInputProps('region')}
                         />
-                    </div>
-                </div>
+                    </Grid.Col>
 
-                <div className="flex gap-2">
-                    <button
+                    <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+                        <Select
+                            label="Group"
+                            placeholder="Select group"
+                            data={user?.groups?.map((group) => ({
+                                value: group.id.toString(),
+                                label: group.fullname
+                            })) || []}
+                            {...form.getInputProps('group')}
+                        />
+                    </Grid.Col>
+
+                    <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+                        <Select
+                            label="Status"
+                            placeholder="Select status"
+                            data={[
+                                { value: 'all', label: 'All Rules' },
+                                { value: 'enabled', label: 'Enabled Only' },
+                                { value: 'disabled', label: 'Disabled Only' }
+                            ]}
+                            {...form.getInputProps('enabled')}
+                        />
+                    </Grid.Col>
+
+                    <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+                        <TextInput
+                            label="Search"
+                            placeholder="Search rules..."
+                            leftSection={<IconSearch size={16} />}
+                            {...form.getInputProps('search')}
+                        />
+                    </Grid.Col>
+                </Grid>
+
+                <Group mt="md" gap="sm">
+                    <Button
                         type="submit"
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                        leftSection={<IconFilter size={16} />}
                     >
                         Apply Filters
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         type="button"
+                        variant="light"
+                        color="gray"
                         onClick={handleReset}
-                        className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
+                        leftSection={<IconFilterOff size={16} />}
                     >
                         Reset
-                    </button>
-                </div>
+                    </Button>
+                </Group>
             </form>
-        </div>
+        </Paper>
     )
 }

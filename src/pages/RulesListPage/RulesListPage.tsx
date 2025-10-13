@@ -1,7 +1,9 @@
+import { Stack, Paper, Title, Loader, Center, Text, Badge, Group, SimpleGrid, Anchor, Alert } from '@mantine/core'
 import { useStore } from '../../store/useStore'
 import { useRules } from '../../hooks/useApi'
-import {RulesFilters} from "../../components/RulesFilters/RulesFilters";
+import { RulesFilters } from "../../components/RulesFilters/RulesFilters"
 import { Link } from 'react-router-dom'
+import { IconAlertCircle } from '@tabler/icons-react'
 
 export const RulesListPage = () => {
     const { filters } = useStore()
@@ -21,103 +23,118 @@ export const RulesListPage = () => {
 
     if (isLoading) {
         return (
-            <div className="space-y-6">
+            <Stack gap="lg">
                 <RulesFilters />
-                <div className="text-center py-12">
-                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Loading rules...</p>
-                </div>
-            </div>
+                <Center py={60}>
+                    <Stack align="center" gap="md">
+                        <Loader size="xl" />
+                        <Text c="dimmed">Loading rules...</Text>
+                    </Stack>
+                </Center>
+            </Stack>
         )
     }
 
     if (error) {
         return (
-            <div className="space-y-6">
+            <Stack gap="lg">
                 <RulesFilters />
-                <div className="text-center py-12">
-                    <div className="text-red-600 text-xl mb-4">⚠️ Error loading rules</div>
-                    <p className="text-gray-600">{error.message}</p>
-                </div>
-            </div>
+                <Alert
+                    icon={<IconAlertCircle size={16} />}
+                    title="Error loading rules"
+                    color="red"
+                    variant="light"
+                >
+                    {error.message}
+                </Alert>
+            </Stack>
         )
     }
 
     return (
-        <div className="space-y-6">
+        <Stack gap="lg">
             <RulesFilters />
 
-            <div className="bg-white rounded-lg shadow-sm border">
-                <div className="px-6 py-4 border-b">
-                    <h2 className="text-xl font-semibold">
+            <Paper shadow="sm" withBorder>
+                <Group p="md" style={{ borderBottom: '1px solid var(--mantine-color-dark-4)' }}>
+                    <Title order={3}>
                         Rules ({filteredRules?.length || 0})
-                    </h2>
-                </div>
+                    </Title>
+                </Group>
 
-                <div className="divide-y divide-gray-200">
+                <Stack gap={0}>
                     {filteredRules?.map((rule) => (
-                        <div key={rule.id} className="p-6 hover:bg-gray-50 transition-colors">
-                            <div className="flex justify-between items-start">
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <Link
-                                            to={`/rules/${rule.id}`}
-                                            className="text-lg font-medium text-blue-600 hover:text-blue-800"
-                                        >
-                                            {rule.name}
-                                        </Link>
-                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                            rule.enabled
-                                                ? 'bg-green-100 text-green-800'
-                                                : 'bg-red-100 text-red-800'
-                                        }`}>
-                      {rule.enabled ? 'Enabled' : 'Disabled'}
-                    </span>
-                                    </div>
+                        <Paper
+                            key={rule.id}
+                            p="lg"
+                            style={(theme) => ({
+                                borderBottom: `1px solid ${theme.colors.dark[4]}`,
+                                transition: 'background-color 0.2s',
+                                '&:hover': {
+                                    backgroundColor: theme.colors.dark[6]
+                                }
+                            })}
+                        >
+                            <Stack gap="sm">
+                                <Group>
+                                    <Anchor
+                                        component={Link}
+                                        to={`/rules/${rule.id}`}
+                                        size="lg"
+                                        fw={500}
+                                    >
+                                        {rule.name}
+                                    </Anchor>
+                                    <Badge
+                                        color={rule.enabled ? 'green' : 'red'}
+                                        variant="light"
+                                    >
+                                        {rule.enabled ? 'Enabled' : 'Disabled'}
+                                    </Badge>
+                                </Group>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
-                                        <div>
-                                            <span className="font-medium">Author:</span> {rule.author}
-                                        </div>
-                                        <div>
-                                            <span className="font-medium">Group:</span> {rule.group_name}
-                                        </div>
-                                        <div>
-                                            <span className="font-medium">Version:</span> {rule.version}
-                                        </div>
-                                        <div>
-                                            <span className="font-medium">Created:</span> {new Date(rule.created * 1000).toLocaleDateString()}
-                                        </div>
-                                        <div>
-                                            <span className="font-medium">Updated:</span> {new Date(rule.updated * 1000).toLocaleDateString()}
-                                        </div>
-                                        <div>
-                                            <span className="font-medium">Triggers:</span> {rule.trigger_count}
-                                        </div>
-                                    </div>
+                                <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="xs">
+                                    <Text size="sm" c="dimmed">
+                                        <Text span fw={500} c="white">Author:</Text> {rule.author}
+                                    </Text>
+                                    <Text size="sm" c="dimmed">
+                                        <Text span fw={500} c="white">Group:</Text> {rule.group_name}
+                                    </Text>
+                                    <Text size="sm" c="dimmed">
+                                        <Text span fw={500} c="white">Version:</Text> {rule.version}
+                                    </Text>
+                                    <Text size="sm" c="dimmed">
+                                        <Text span fw={500} c="white">Created:</Text> {new Date(rule.created * 1000).toLocaleDateString()}
+                                    </Text>
+                                    <Text size="sm" c="dimmed">
+                                        <Text span fw={500} c="white">Updated:</Text> {new Date(rule.updated * 1000).toLocaleDateString()}
+                                    </Text>
+                                    <Text size="sm" c="dimmed">
+                                        <Text span fw={500} c="white">Triggers:</Text> {rule.trigger_count}
+                                    </Text>
+                                </SimpleGrid>
 
-                                    <div className="mt-3">
-                                        <span className="font-medium text-sm text-gray-600">Regions:</span>
-                                        <div className="flex flex-wrap gap-1 mt-1">
-                                            {rule.regions.map((region) => (
-                                                <span key={region} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
-                          {region}
-                        </span>
-                                            ))}
-                                        </div>
-                                    </div>
+                                <div>
+                                    <Text size="sm" fw={500} mb={4}>Regions:</Text>
+                                    <Group gap="xs">
+                                        {rule.regions.map((region) => (
+                                            <Badge key={region} variant="dot" size="sm">
+                                                {region}
+                                            </Badge>
+                                        ))}
+                                    </Group>
                                 </div>
-                            </div>
-                        </div>
+                            </Stack>
+                        </Paper>
                     ))}
-                </div>
+                </Stack>
 
                 {filteredRules?.length === 0 && (
-                    <div className="text-center py-12 text-gray-500">
-                        No rules found matching your filters.
-                    </div>
+                    <Center py={60}>
+                        <Text c="dimmed">No rules found matching your filters.</Text>
+                    </Center>
                 )}
-            </div>
-        </div>
+            </Paper>
+        </Stack>
     )
 }

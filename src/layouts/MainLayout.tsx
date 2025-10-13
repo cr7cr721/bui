@@ -1,10 +1,13 @@
-import { Outlet, Link, useLocation } from 'react-router-dom'
+import { AppShell, Group, Title, Text, Button, Tabs } from '@mantine/core'
+import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useVersion } from '../hooks/useApi'
 import { useLogout } from '../hooks/useAuth'
 import { useStore } from '../store/useStore'
 import { SignInModal } from '../components/SignInModal/SignInModal'
+import { IconList, IconPlus, IconSettings } from '@tabler/icons-react'
 
 export const MainLayout = () => {
+    const navigate = useNavigate()
     const location = useLocation()
     const { data: version } = useVersion()
     const logoutMutation = useLogout()
@@ -15,8 +18,6 @@ export const MainLayout = () => {
         clearAuth
     } = useStore()
 
-    const isActive = (path: string) => location.pathname === path
-
     const handleSignOut = () => {
         logoutMutation.mutate(undefined, {
             onSuccess: () => {
@@ -25,86 +26,89 @@ export const MainLayout = () => {
         })
     }
 
-    // Check authentication status
     const authenticated = isAuthenticated()
 
+    const getActiveTab = () => {
+        if (location.pathname === '/') return 'rules'
+        if (location.pathname === '/create-rule') return 'create'
+        if (location.pathname === '/settings') return 'settings'
+        return 'rules'
+    }
+
     return (
-        <div className="min-h-screen bg-gray-50">
-            <header className="bg-white shadow-sm border-b">
-                <div className="max-w-7xl mx-auto px-4 py-4">
-                    <div className="flex justify-between items-center">
+        <>
+            <AppShell header={{ height: 70 }} padding="md">
+                <AppShell.Header>
+                    <Group h="100%" px="md" justify="space-between">
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-900">BEAM Rules Dashboard</h1>
+                            <Title order={3}>BEAM Rules Dashboard</Title>
                             {version && (
-                                <p className="text-sm text-gray-500">Version: {version}</p>
+                                <Text size="xs" c="dimmed">Version: {version}</Text>
                             )}
                         </div>
 
-                        <div className="flex items-center space-x-6">
-                            <nav className="flex space-x-6">
-                                <Link
-                                    to="/"
-                                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                                        isActive('/')
-                                            ? 'bg-blue-100 text-blue-700'
-                                            : 'text-gray-700 hover:text-blue-600'
-                                    }`}
-                                >
-                                    Rules
-                                </Link>
-                                <Link
-                                    to="/create-rule"
-                                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                                        isActive('/create-rule')
-                                            ? 'bg-blue-100 text-blue-700'
-                                            : 'text-gray-700 hover:text-blue-600'
-                                    }`}
-                                >
-                                    Create Rule
-                                </Link>
-                                <Link
-                                    to="/settings"
-                                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                                        isActive('/settings')
-                                            ? 'bg-blue-100 text-blue-700'
-                                            : 'text-gray-700 hover:text-blue-600'
-                                    }`}
-                                >
-                                    Settings
-                                </Link>
-                            </nav>
+                        <Group gap="xl">
+                            <Tabs
+                                value={getActiveTab()}
+                                onChange={(value) => {
+                                    if (value === 'rules') navigate('/')
+                                    if (value === 'create') navigate('/create-rule')
+                                    if (value === 'settings') navigate('/settings')
+                                }}
+                                variant="pills"
+                            >
+                                <Tabs.List>
+                                    <Tabs.Tab
+                                        value="rules"
+                                        leftSection={<IconList size={16} />}
+                                    >
+                                        Rules
+                                    </Tabs.Tab>
+                                    <Tabs.Tab
+                                        value="create"
+                                        leftSection={<IconPlus size={16} />}
+                                    >
+                                        Create Rule
+                                    </Tabs.Tab>
+                                    <Tabs.Tab
+                                        value="settings"
+                                        leftSection={<IconSettings size={16} />}
+                                    >
+                                        Settings
+                                    </Tabs.Tab>
+                                </Tabs.List>
+                            </Tabs>
 
-                            {/* Auth Section */}
                             {authenticated ? (
-                                <button
+                                <Button
                                     onClick={handleSignOut}
-                                    disabled={logoutMutation.isPending}
-                                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-red-600 disabled:opacity-50 transition-colors"
+                                    loading={logoutMutation.isPending}
+                                    variant="subtle"
+                                    color="red"
                                 >
-                                    {logoutMutation.isPending ? 'Signing Out...' : 'Sign Out'}
-                                </button>
+                                    Sign Out
+                                </Button>
                             ) : (
-                                <button
+                                <Button
                                     onClick={() => setSignInModalOpen(true)}
-                                    className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+                                    variant="filled"
                                 >
                                     Sign In
-                                </button>
+                                </Button>
                             )}
-                        </div>
-                    </div>
-                </div>
-            </header>
+                        </Group>
+                    </Group>
+                </AppShell.Header>
 
-            <main className="max-w-7xl mx-auto px-4 py-6">
-                <Outlet />
-            </main>
+                <AppShell.Main>
+                    <Outlet />
+                </AppShell.Main>
+            </AppShell>
 
-            {/* Sign In Modal */}
             <SignInModal
                 isOpen={isSignInModalOpen}
                 onClose={() => setSignInModalOpen(false)}
             />
-        </div>
+        </>
     )
 }

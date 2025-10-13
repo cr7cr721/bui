@@ -6,7 +6,6 @@ import { RulesListPage } from './pages/RulesListPage/RulesListPage'
 import { RuleDetailPage } from './pages/RuleDetailPage/RuleDetailPage'
 import { useStore } from './store/useStore'
 import { setAuthHelpers } from './services/api'
-import './App.css'
 import CreateRulePage from "./pages/CreateRulePage/CreateRulePage.tsx";
 
 // Create a client
