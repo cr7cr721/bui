@@ -81,20 +81,36 @@ BEAM Rules Dashboard V2 is a complete rewrite of the BEAM UI with modern tooling
 
 Before you begin, ensure you have the following installed:
 
-- **Node.js** >= 18.0.0 (LTS recommended)
-- **Yarn** >= 1.22.0
-- **Git**
+### Required Software
 
-Check your versions:
+1. **Node.js** >= 18.0.0 (LTS recommended)
+    - Download: https://nodejs.org/
+    - Check version: `node --version`
+
+2. **Yarn** >= 1.22.0
+    - **Install on Mac:**
 ```bash
-node --version   # Should be >= 18.0.0
-yarn --version   # Should be >= 1.22.0
-git --version
+     npm install -g yarn
+```
+     Or if you have Homebrew:
+```bash
+     brew install yarn
+```
+- **Install on Windows/Linux:** https://classic.yarnpkg.com/en/docs/install
+- Check version: `yarn --version`
+
+3. **Git**
+    - Download: https://git-scm.com/
+    - Check version: `git --version`
+
+### Verify Installation
+```bash
+node --version    # Should be >= 18.0.0
+yarn --version    # Should be >= 1.22.0
+git --version     # Any modern version
 ```
 
-**Install Node.js:** https://nodejs.org/  
-**Install Yarn:** https://classic.yarnpkg.com/en/docs/install
-
+If all commands return versions, you're ready! 🚀
 ---
 
 ## 🚀 Getting Started
