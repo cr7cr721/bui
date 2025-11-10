@@ -7,10 +7,11 @@ import {
     Stepper,
     Button,
     Group,
-    Title
+    Title,
+    Tabs
 } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
-import { IconCheck } from '@tabler/icons-react'
+import { IconCheck, IconForms, IconCode } from '@tabler/icons-react'
 
 // Import step components
 import { InfoScheduleStep } from './steps/InfoScheduleStep'
@@ -19,11 +20,14 @@ import { InputsStep } from './steps/InputsStep'
 import { TransformStep } from './steps/TransformStep'
 import { ConditionStep } from './steps/ConditionStep'
 import { ActionsStep } from './steps/ActionsStep'
-import type { RuleFormData } from '@/types/rule';
+import { JsonView } from './JsonView'
+
+import type { RuleFormData } from '@/types/rule'
 
 const CreateRulePage = () => {
     const navigate = useNavigate()
     const [active, setActive] = useState(0)
+    const [activeView, setActiveView] = useState<'form' | 'json'>('form')
 
     const methods = useForm<RuleFormData>({
         defaultValues: {
@@ -102,63 +106,83 @@ const CreateRulePage = () => {
             <Paper shadow="sm" p="xl" withBorder>
                 <Title order={2} mb="xl">Create Rule</Title>
 
-                <Stepper active={active} onStepClick={setActive}>
-                    <Stepper.Step label="Info & Schedule" description="Basic information">
-                        <FormProvider {...methods}>
-                            <InfoScheduleStep />
-                        </FormProvider>
-                    </Stepper.Step>
+                <FormProvider {...methods}>
+                    <Tabs
+                        value={activeView}
+                        onChange={(val) => setActiveView(val as 'form' | 'json')}
+                        mb="xl"
+                    >
+                        <Tabs.List>
+                            <Tabs.Tab value="form" leftSection={<IconForms size={16} />}>
+                                Form View
+                            </Tabs.Tab>
+                            <Tabs.Tab value="json" leftSection={<IconCode size={16} />}>
+                                Raw JSON
+                            </Tabs.Tab>
+                        </Tabs.List>
 
-                    <Stepper.Step label="Parameters" description="Configure parameters">
-                        <FormProvider {...methods}>
-                            <ParametersStep />
-                        </FormProvider>
-                    </Stepper.Step>
+                        {/* Form View Panel */}
+                        <Tabs.Panel value="form" pt="xl">
+                            <Stepper active={active} onStepClick={setActive}>
+                                <Stepper.Step label="Info & Schedule" description="Basic information">
+                                    <InfoScheduleStep />
+                                </Stepper.Step>
 
-                    <Stepper.Step label="Inputs" description="Define inputs">
-                        <FormProvider {...methods}>
-                            <InputsStep />
-                        </FormProvider>
-                    </Stepper.Step>
+                                <Stepper.Step label="Parameters" description="Configure parameters">
+                                    <ParametersStep />
+                                </Stepper.Step>
 
-                    <Stepper.Step label="Transform" description="Transform data">
-                        <FormProvider {...methods}>
-                            <TransformStep />
-                        </FormProvider>
-                    </Stepper.Step>
+                                <Stepper.Step label="Inputs" description="Define inputs">
+                                    <InputsStep />
+                                </Stepper.Step>
 
-                    <Stepper.Step label="Condition" description="Set conditions">
-                        <FormProvider {...methods}>
-                            <ConditionStep />
-                        </FormProvider>
-                    </Stepper.Step>
+                                <Stepper.Step label="Transform" description="Transform data">
+                                    <TransformStep />
+                                </Stepper.Step>
 
-                    <Stepper.Step label="Actions" description="Define actions">
-                        <FormProvider {...methods}>
-                            <ActionsStep />
-                        </FormProvider>
-                    </Stepper.Step>
+                                <Stepper.Step label="Condition" description="Set conditions">
+                                    <ConditionStep />
+                                </Stepper.Step>
 
-                    <Stepper.Completed>
-                        <FormProvider {...methods}>
-                            <Paper p="md" withBorder mt="xl">
-                                <Title order={4} mb="md">Review & Submit</Title>
-                                <Button onClick={methods.handleSubmit(onSubmit)} size="lg">
-                                    Create Rule
+                                <Stepper.Step label="Actions" description="Define actions">
+                                    <ActionsStep />
+                                </Stepper.Step>
+
+                                <Stepper.Completed>
+                                    <Paper p="md" withBorder mt="xl">
+                                        <Title order={4} mb="md">Review & Submit</Title>
+                                        <Button onClick={methods.handleSubmit(onSubmit)} size="lg">
+                                            Create Rule
+                                        </Button>
+                                    </Paper>
+                                </Stepper.Completed>
+                            </Stepper>
+
+                            <Group justify="space-between" mt="xl">
+                                <Button variant="default" onClick={prevStep} disabled={active === 0}>
+                                    Back
                                 </Button>
-                            </Paper>
-                        </FormProvider>
-                    </Stepper.Completed>
-                </Stepper>
+                                <Group>
+                                    <Button
+                                        variant="light"
+                                        onClick={() => setActiveView('json')}
+                                        leftSection={<IconCode size={16} />}
+                                    >
+                                        View JSON
+                                    </Button>
+                                    <Button onClick={active === 6 ? methods.handleSubmit(onSubmit) : nextStep}>
+                                        {active === 6 ? 'Submit' : 'Next'}
+                                    </Button>
+                                </Group>
+                            </Group>
+                        </Tabs.Panel>
 
-                <Group justify="space-between" mt="xl">
-                    <Button variant="default" onClick={prevStep} disabled={active === 0}>
-                        Back
-                    </Button>
-                    <Button onClick={active === 6 ? methods.handleSubmit(onSubmit) : nextStep}>
-                        {active === 6 ? 'Submit' : 'Next'}
-                    </Button>
-                </Group>
+                        {/* JSON View Panel */}
+                        <Tabs.Panel value="json" pt="xl">
+                            <JsonView onBackToForm={() => setActiveView('form')} />
+                        </Tabs.Panel>
+                    </Tabs>
+                </FormProvider>
             </Paper>
         </Container>
     )
