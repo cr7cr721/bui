@@ -34,7 +34,9 @@ export const JsonView = ({ onBackToForm }: JsonViewProps) => {
                 setJsonString(formJson)
             }
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [formData, liveSync, isEditingJson])
+    // Note: jsonString intentionally excluded to prevent circular updates
 
     // Update form when JSON changes (JSON → form)
     useEffect(() => {
@@ -58,7 +60,9 @@ export const JsonView = ({ onBackToForm }: JsonViewProps) => {
             setJsonError(error instanceof Error ? error.message : 'Invalid JSON')
             setIsEditingJson(false)
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [debouncedJson, liveSync])
+    // Note: formData and reset intentionally excluded to prevent circular updates
 
     // Handle manual JSON edits
     const handleJsonChange = (value: string | undefined) => {
@@ -212,7 +216,6 @@ export const JsonView = ({ onBackToForm }: JsonViewProps) => {
                         formatOnType: true,
                         automaticLayout: true,
                         tabSize: 2,
-                        // Always editable
                         readOnly: false,
                     }}
                 />
