@@ -18,7 +18,7 @@ import {
     Tooltip
 } from '@mantine/core'
 import { useStore } from '@/store/useStore'
-import { useRules } from '@/hooks/useApi'
+import { useRules, useUser } from '@/hooks/useApi'
 import { RulesFilters } from "@/components/RulesFilters/RulesFilters"
 import { Link } from 'react-router-dom'
 import {
@@ -38,6 +38,7 @@ type SortDirection = 'asc' | 'desc'
 export const RulesListPage = () => {
     const { filters } = useStore()
     const { data: rules, isLoading, error, refetch } = useRules(filters.region, parseInt(filters.group))
+    const { data: user } = useUser()
 
     // Selection state
     const [selectedRuleIds, setSelectedRuleIds] = useState<number[]>([])
@@ -161,11 +162,14 @@ export const RulesListPage = () => {
         try {
             console.log('Moving rules:', selectedRuleIds, 'to group:', targetGroup)
             // TODO: Call API to move rules
-            // await apiClient.moveRules(selectedRuleIds, targetGroup)
+            // await apiClient.moveRules(selectedRuleIds, parseInt(targetGroup))
+
+            // Find group name for notification
+            const groupName = user?.groups?.find(g => g.id.toString() === targetGroup)?.fullname || targetGroup
 
             notifications.show({
                 title: 'Success',
-                message: `${selectedRuleIds.length} rule(s) moved to group ${targetGroup}`,
+                message: `${selectedRuleIds.length} rule(s) moved to ${groupName}`,
                 color: 'green'
             })
 
@@ -468,15 +472,15 @@ export const RulesListPage = () => {
                     <Select
                         label="Target Group"
                         placeholder="Select group"
-                        data={[
-                            { value: '1', label: 'Blizzard' },
-                            { value: '2', label: 'Group 2' },
-                            { value: '3', label: 'Group 3' },
-                            // TODO: Fetch groups dynamically from API
-                        ]}
+                        data={user?.groups?.map((group) => ({
+                            value: group.id.toString(),
+                            label: group.fullname
+                        })) || []}
                         value={targetGroup}
                         onChange={setTargetGroup}
                         required
+                        searchable
+                        nothingFoundMessage="No groups found"
                     />
 
                     <Group justify="flex-end">
