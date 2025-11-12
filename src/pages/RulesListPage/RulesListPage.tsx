@@ -18,7 +18,7 @@ import {
     Tooltip
 } from '@mantine/core'
 import { useStore } from '@/store/useStore'
-import { useRules, useUser } from '@/hooks/useApi'
+import { useRules, useUser, useMoveRulesToGroup } from '@/hooks/useApi'
 import { RulesFilters } from "@/components/RulesFilters/RulesFilters"
 import { Link } from 'react-router-dom'
 import {
@@ -40,6 +40,7 @@ export const RulesListPage = () => {
     const { filters, isAuthenticated } = useStore()
     const { data: rules, isLoading, error, refetch } = useRules(filters.region, parseInt(filters.group))
     const { data: user } = useUser()
+    const moveRulesMutation = useMoveRulesToGroup()
 
     // Check if user is authenticated
     const userLoggedIn = isAuthenticated() && user
@@ -181,13 +182,14 @@ export const RulesListPage = () => {
             return
         }
 
-        try {
-            console.log('Moving rules:', selectedRuleIds, 'to group:', targetGroup)
-            // TODO: Call API to move rules
-            // await apiClient.moveRules(selectedRuleIds, parseInt(targetGroup))
+        // Find group name for notification
+        const groupName = user?.groups?.find(g => g.id.toString() === targetGroup)?.fullname || targetGroup
 
-            // Find group name for notification
-            const groupName = user?.groups?.find(g => g.id.toString() === targetGroup)?.fullname || targetGroup
+        try {
+            await moveRulesMutation.mutateAsync({
+                ruleIds: selectedRuleIds,
+                groupId: parseInt(targetGroup)
+            })
 
             notifications.show({
                 title: 'Success',
@@ -198,11 +200,10 @@ export const RulesListPage = () => {
             setSelectedRuleIds([])
             setMoveModalOpen(false)
             setTargetGroup(null)
-            await refetch()
-        } catch (_error) {
+        } catch (error) {
             notifications.show({
                 title: 'Error',
-                message: 'Failed to move rules',
+                message: error instanceof Error ? error.message : 'Failed to move rules',
                 color: 'red'
             })
         }
@@ -521,6 +522,7 @@ export const RulesListPage = () => {
                         required
                         searchable
                         nothingFoundMessage="No groups found"
+                        disabled={moveRulesMutation.isPending}
                     />
 
                     <Group justify="flex-end">
@@ -530,12 +532,14 @@ export const RulesListPage = () => {
                                 setMoveModalOpen(false)
                                 setTargetGroup(null)
                             }}
+                            disabled={moveRulesMutation.isPending}
                         >
                             Cancel
                         </Button>
                         <Button
                             onClick={handleMoveToGroup}
                             disabled={!targetGroup}
+                            loading={moveRulesMutation.isPending}
                         >
                             Move Rules
                         </Button>

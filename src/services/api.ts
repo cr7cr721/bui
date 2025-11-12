@@ -45,7 +45,7 @@ class ApiClient {
                 // Add auth token if available
                 const token = getAuthToken()
                 if (token) {
-                    config.headers.Authorization = `Bearer ${token}`
+                    config.headers['x-auth-token'] = token
                 }
 
                 return config
@@ -108,6 +108,10 @@ class ApiClient {
     async getRules(regions: string, groupId: number): Promise<Rule[]> {
         const response = await this.client.get<Rule[]>(`/rules?regions=${regions}&group=${groupId}`)
         return response.data
+    }
+
+    async moveRuleToGroup(ruleId: number, groupId: number): Promise<void> {
+        await this.client.post(`/rules/${ruleId}/setgroup?group=${groupId}`)
     }
 }
 
