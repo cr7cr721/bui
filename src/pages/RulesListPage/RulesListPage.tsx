@@ -28,7 +28,8 @@ import {
     IconX,
     IconChevronUp,
     IconChevronDown,
-    IconSelector
+    IconSelector,
+    IconLock
 } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 
@@ -36,9 +37,12 @@ type SortField = 'name' | 'author' | 'group_name' | 'version' | 'created' | 'upd
 type SortDirection = 'asc' | 'desc'
 
 export const RulesListPage = () => {
-    const { filters } = useStore()
+    const { filters, isAuthenticated } = useStore()
     const { data: rules, isLoading, error, refetch } = useRules(filters.region, parseInt(filters.group))
     const { data: user } = useUser()
+
+    // Check if user is authenticated
+    const userLoggedIn = isAuthenticated() && user
 
     // Selection state
     const [selectedRuleIds, setSelectedRuleIds] = useState<number[]>([])
@@ -86,6 +90,15 @@ export const RulesListPage = () => {
     const someSelected = selectedRuleIds.length > 0 && selectedRuleIds.length < filteredAndSortedRules.length
 
     const handleSelectAll = () => {
+        if (!userLoggedIn) {
+            notifications.show({
+                message: 'Please sign in to select rules',
+                color: 'orange',
+                icon: <IconLock size={16} />
+            })
+            return
+        }
+
         if (allSelected) {
             setSelectedRuleIds([])
         } else {
@@ -94,6 +107,15 @@ export const RulesListPage = () => {
     }
 
     const handleSelectRule = (ruleId: number) => {
+        if (!userLoggedIn) {
+            notifications.show({
+                message: 'Please sign in to select rules',
+                color: 'orange',
+                icon: <IconLock size={16} />
+            })
+            return
+        }
+
         setSelectedRuleIds(prev => {
             if (prev.includes(ruleId)) {
                 return prev.filter(id => id !== ruleId)
@@ -221,61 +243,75 @@ export const RulesListPage = () => {
             <RulesFilters />
 
             {/* Bulk Actions Toolbar - Always Visible */}
-            <Paper
-                p="md"
-                withBorder
-                style={{
-                    backgroundColor: selectedRuleIds.length > 0
-                        ? 'var(--mantine-color-blue-9)'
-                        : 'var(--mantine-color-dark-6)',
-                    transition: 'background-color 0.2s'
-                }}
-            >
-                <Group justify="space-between">
-                    <Group>
-                        {selectedRuleIds.length > 0 ? (
-                            <>
-                                <Text fw={500}>
-                                    {selectedRuleIds.length} rule{selectedRuleIds.length !== 1 ? 's' : ''} selected
+            {userLoggedIn && (
+                <Paper
+                    p="md"
+                    withBorder
+                    style={{
+                        backgroundColor: selectedRuleIds.length > 0
+                            ? 'var(--mantine-color-blue-9)'
+                            : 'var(--mantine-color-dark-6)',
+                        transition: 'background-color 0.2s'
+                    }}
+                >
+                    <Group justify="space-between">
+                        <Group>
+                            {selectedRuleIds.length > 0 ? (
+                                <>
+                                    <Text fw={500}>
+                                        {selectedRuleIds.length} rule{selectedRuleIds.length !== 1 ? 's' : ''} selected
+                                    </Text>
+                                    <Button
+                                        variant="subtle"
+                                        size="xs"
+                                        onClick={handleClearSelection}
+                                        leftSection={<IconX size={14} />}
+                                    >
+                                        Clear Selection
+                                    </Button>
+                                </>
+                            ) : (
+                                <Text c="dimmed" size="sm">
+                                    Select rules to perform bulk actions
                                 </Text>
-                                <Button
-                                    variant="subtle"
-                                    size="xs"
-                                    onClick={handleClearSelection}
-                                    leftSection={<IconX size={14} />}
-                                >
-                                    Clear Selection
-                                </Button>
-                            </>
-                        ) : (
-                            <Text c="dimmed" size="sm">
-                                Select rules to perform bulk actions
-                            </Text>
-                        )}
-                    </Group>
+                            )}
+                        </Group>
 
-                    <Group>
-                        <Button
-                            variant="light"
-                            color="blue"
-                            leftSection={<IconFolders size={16} />}
-                            onClick={() => setMoveModalOpen(true)}
-                            disabled={selectedRuleIds.length === 0}
-                        >
-                            Move to Group
-                        </Button>
-                        <Button
-                            variant="light"
-                            color="red"
-                            leftSection={<IconTrash size={16} />}
-                            onClick={() => setDeleteModalOpen(true)}
-                            disabled={selectedRuleIds.length === 0}
-                        >
-                            Delete
-                        </Button>
+                        <Group>
+                            <Button
+                                variant="light"
+                                color="blue"
+                                leftSection={<IconFolders size={16} />}
+                                onClick={() => setMoveModalOpen(true)}
+                                disabled={selectedRuleIds.length === 0}
+                            >
+                                Move to Group
+                            </Button>
+                            <Button
+                                variant="light"
+                                color="red"
+                                leftSection={<IconTrash size={16} />}
+                                onClick={() => setDeleteModalOpen(true)}
+                                disabled={selectedRuleIds.length === 0}
+                            >
+                                Delete
+                            </Button>
+                        </Group>
                     </Group>
-                </Group>
-            </Paper>
+                </Paper>
+            )}
+
+            {/* Not Logged In Warning */}
+            {!userLoggedIn && (
+                <Alert
+                    icon={<IconLock size={16} />}
+                    title="Sign in required"
+                    color="blue"
+                    variant="light"
+                >
+                    Sign in to select and manage rules using bulk operations.
+                </Alert>
+            )}
 
             {/* Rules Table */}
             <Paper shadow="sm" withBorder>
@@ -294,13 +330,15 @@ export const RulesListPage = () => {
                         <Table highlightOnHover striped verticalSpacing="sm">
                             <Table.Thead>
                                 <Table.Tr>
-                                    <Table.Th style={{ width: 40 }}>
-                                        <Checkbox
-                                            checked={allSelected}
-                                            indeterminate={someSelected}
-                                            onChange={handleSelectAll}
-                                        />
-                                    </Table.Th>
+                                    {userLoggedIn && (
+                                        <Table.Th style={{ width: 40 }}>
+                                            <Checkbox
+                                                checked={allSelected}
+                                                indeterminate={someSelected}
+                                                onChange={handleSelectAll}
+                                            />
+                                        </Table.Th>
+                                    )}
                                     <Table.Th
                                         style={{ cursor: 'pointer', userSelect: 'none' }}
                                         onClick={() => handleSort('name')}
@@ -369,12 +407,14 @@ export const RulesListPage = () => {
                                                 : undefined,
                                         }}
                                     >
-                                        <Table.Td>
-                                            <Checkbox
-                                                checked={selectedRuleIds.includes(rule.id)}
-                                                onChange={() => handleSelectRule(rule.id)}
-                                            />
-                                        </Table.Td>
+                                        {userLoggedIn && (
+                                            <Table.Td>
+                                                <Checkbox
+                                                    checked={selectedRuleIds.includes(rule.id)}
+                                                    onChange={() => handleSelectRule(rule.id)}
+                                                />
+                                            </Table.Td>
+                                        )}
                                         <Table.Td>
                                             <Anchor
                                                 component={Link}
