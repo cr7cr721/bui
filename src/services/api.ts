@@ -113,6 +113,10 @@ class ApiClient {
     async moveRuleToGroup(ruleId: number, groupId: number): Promise<void> {
         await this.client.post(`/rules/${ruleId}/setgroup?group=${groupId}`)
     }
+
+    async deleteRule(ruleId: number): Promise<void> {
+        await this.client.post(`/rules/${ruleId}/delete`)
+    }
 }
 
 export const apiClient = new ApiClient()

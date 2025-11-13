@@ -18,7 +18,7 @@ import {
     Tooltip
 } from '@mantine/core'
 import { useStore } from '@/store/useStore'
-import { useRules, useUser, useMoveRulesToGroup } from '@/hooks/useApi'
+import { useRules, useUser, useMoveRulesToGroup, useDeleteRules } from '@/hooks/useApi'
 import { RulesFilters } from "@/components/RulesFilters/RulesFilters"
 import { Link } from 'react-router-dom'
 import {
@@ -38,9 +38,10 @@ type SortDirection = 'asc' | 'desc'
 
 export const RulesListPage = () => {
     const { filters, isAuthenticated } = useStore()
-    const { data: rules, isLoading, error, refetch } = useRules(filters.region, parseInt(filters.group))
+    const { data: rules, isLoading, error } = useRules(filters.region, parseInt(filters.group))
     const { data: user } = useUser()
     const moveRulesMutation = useMoveRulesToGroup()
+    const deleteRulesMutation = useDeleteRules()
 
     // Check if user is authenticated
     const userLoggedIn = isAuthenticated() && user
@@ -150,9 +151,7 @@ export const RulesListPage = () => {
     // Delete selected rules
     const handleDeleteSelected = async () => {
         try {
-            console.log('Deleting rules:', selectedRuleIds)
-            // TODO: Call API to delete rules
-            // await apiClient.deleteRules(selectedRuleIds)
+            await deleteRulesMutation.mutateAsync(selectedRuleIds)
 
             notifications.show({
                 title: 'Success',
@@ -162,7 +161,6 @@ export const RulesListPage = () => {
 
             setSelectedRuleIds([])
             setDeleteModalOpen(false)
-            await refetch()
         } catch (_error) {
             notifications.show({
                 title: 'Error',
@@ -484,10 +482,18 @@ export const RulesListPage = () => {
                     </Alert>
 
                     <Group justify="flex-end">
-                        <Button variant="default" onClick={() => setDeleteModalOpen(false)}>
+                        <Button
+                            variant="default"
+                            onClick={() => setDeleteModalOpen(false)}
+                            disabled={deleteRulesMutation.isPending}
+                        >
                             Cancel
                         </Button>
-                        <Button color="red" onClick={handleDeleteSelected}>
+                        <Button
+                            color="red"
+                            onClick={handleDeleteSelected}
+                            loading={deleteRulesMutation.isPending}
+                        >
                             Delete {selectedRuleIds.length} Rule{selectedRuleIds.length !== 1 ? 's' : ''}
                         </Button>
                     </Group>

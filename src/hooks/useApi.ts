@@ -59,3 +59,18 @@ export const useMoveRulesToGroup = () => {
         }
     })
 }
+
+export const useDeleteRules = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: async (ruleIds: number[]) => {
+            await Promise.all(
+                ruleIds.map(ruleId => apiClient.deleteRule(ruleId))
+            )
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['rules'] })
+        }
+    })
+}
