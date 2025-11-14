@@ -1,37 +1,14 @@
 import { useState, useMemo } from 'react'
-import {
-    Stack,
-    Paper,
-    Title,
-    Loader,
-    Center,
-    Text,
-    Badge,
-    Group,
-    Alert,
-    Checkbox,
-    Button,
-    Modal,
-    Select,
-    Table,
-    Anchor,
-    Tooltip
-} from '@mantine/core'
+import { Stack, Loader, Center, Text, Alert } from '@mantine/core'
+import { IconAlertCircle, IconLock } from '@tabler/icons-react'
+import { notifications } from '@mantine/notifications'
 import { useStore } from '@/store/useStore'
 import { useRules, useUser, useMoveRulesToGroup, useDeleteRules } from '@/hooks/useApi'
-import { RulesFilters } from "@/components/RulesFilters/RulesFilters"
-import { Link } from 'react-router-dom'
-import {
-    IconAlertCircle,
-    IconTrash,
-    IconFolders,
-    IconX,
-    IconChevronUp,
-    IconChevronDown,
-    IconSelector,
-    IconLock
-} from '@tabler/icons-react'
-import { notifications } from '@mantine/notifications'
+import { RulesFilters } from './components/RulesFilters.tsx'
+import { BulkActionsToolbar } from './components/BulkActionsToolbar'
+import { DeleteConfirmationModal } from './components/DeleteConfirmationModal'
+import { MoveToGroupModal } from './components/MoveToGroupModal'
+import { RulesTable } from './components/RulesTable'
 
 type SortField = 'name' | 'author' | 'group_name' | 'version' | 'created' | 'updated' | 'trigger_count'
 type SortDirection = 'asc' | 'desc'
@@ -43,16 +20,13 @@ export const RulesListPage = () => {
     const moveRulesMutation = useMoveRulesToGroup()
     const deleteRulesMutation = useDeleteRules()
 
-    // Check if user is authenticated
-    const userLoggedIn = isAuthenticated() && user
+    const userLoggedIn = isAuthenticated() && !!user
 
-    // Selection state
+    // State
     const [selectedRuleIds, setSelectedRuleIds] = useState<number[]>([])
     const [deleteModalOpen, setDeleteModalOpen] = useState(false)
     const [moveModalOpen, setMoveModalOpen] = useState(false)
     const [targetGroup, setTargetGroup] = useState<string | null>(null)
-
-    // Sorting state
     const [sortField, setSortField] = useState<SortField>('updated')
     const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
 
@@ -70,12 +44,10 @@ export const RulesListPage = () => {
             return matchesSearch && matchesEnabled
         }) || []
 
-        // Sort
         return [...filtered].sort((a, b) => {
             let aVal = a[sortField]
             let bVal = b[sortField]
 
-            // Handle different types
             if (typeof aVal === 'string' && typeof bVal === 'string') {
                 aVal = aVal.toLowerCase()
                 bVal = bVal.toLowerCase()
@@ -87,10 +59,7 @@ export const RulesListPage = () => {
         })
     }, [rules, filters, sortField, sortDirection])
 
-    // Select/Deselect all
-    const allSelected = filteredAndSortedRules.length > 0 && selectedRuleIds.length === filteredAndSortedRules.length
-    const someSelected = selectedRuleIds.length > 0 && selectedRuleIds.length < filteredAndSortedRules.length
-
+    // Handlers
     const handleSelectAll = () => {
         if (!userLoggedIn) {
             notifications.show({
@@ -101,7 +70,7 @@ export const RulesListPage = () => {
             return
         }
 
-        if (allSelected) {
+        if (selectedRuleIds.length === filteredAndSortedRules.length) {
             setSelectedRuleIds([])
         } else {
             setSelectedRuleIds(filteredAndSortedRules.map(rule => rule.id))
@@ -118,20 +87,15 @@ export const RulesListPage = () => {
             return
         }
 
-        setSelectedRuleIds(prev => {
-            if (prev.includes(ruleId)) {
-                return prev.filter(id => id !== ruleId)
-            } else {
-                return [...prev, ruleId]
-            }
-        })
+        setSelectedRuleIds(prev =>
+            prev.includes(ruleId)
+                ? prev.filter(id => id !== ruleId)
+                : [...prev, ruleId]
+        )
     }
 
-    const handleClearSelection = () => {
-        setSelectedRuleIds([])
-    }
+    const handleClearSelection = () => setSelectedRuleIds([])
 
-    // Handle sort
     const handleSort = (field: SortField) => {
         if (sortField === field) {
             setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
@@ -141,14 +105,6 @@ export const RulesListPage = () => {
         }
     }
 
-    const getSortIcon = (field: SortField) => {
-        if (sortField !== field) return <IconSelector size={14} />
-        return sortDirection === 'asc'
-            ? <IconChevronUp size={14} />
-            : <IconChevronDown size={14} />
-    }
-
-    // Delete selected rules
     const handleDeleteSelected = async () => {
         try {
             await deleteRulesMutation.mutateAsync(selectedRuleIds)
@@ -161,7 +117,7 @@ export const RulesListPage = () => {
 
             setSelectedRuleIds([])
             setDeleteModalOpen(false)
-        } catch (_error) {
+        } catch {
             notifications.show({
                 title: 'Error',
                 message: 'Failed to delete rules',
@@ -170,7 +126,6 @@ export const RulesListPage = () => {
         }
     }
 
-    // Move selected rules to another group
     const handleMoveToGroup = async () => {
         if (!targetGroup) {
             notifications.show({
@@ -180,7 +135,6 @@ export const RulesListPage = () => {
             return
         }
 
-        // Find group name for notification
         const groupName = user?.groups?.find(g => g.id.toString() === targetGroup)?.fullname || targetGroup
 
         try {
@@ -207,6 +161,12 @@ export const RulesListPage = () => {
         }
     }
 
+    const handleCloseMoveModal = () => {
+        setMoveModalOpen(false)
+        setTargetGroup(null)
+    }
+
+    // Loading state
     if (isLoading) {
         return (
             <Stack gap="lg">
@@ -221,6 +181,7 @@ export const RulesListPage = () => {
         )
     }
 
+    // Error state
     if (error) {
         return (
             <Stack gap="lg">
@@ -237,70 +198,20 @@ export const RulesListPage = () => {
         )
     }
 
+    // Main render
     return (
         <Stack gap="lg">
             <RulesFilters />
 
-            {/* Bulk Actions Toolbar - Always Visible */}
             {userLoggedIn && (
-                <Paper
-                    p="md"
-                    withBorder
-                    style={{
-                        backgroundColor: selectedRuleIds.length > 0
-                            ? 'var(--mantine-color-blue-9)'
-                            : 'var(--mantine-color-dark-6)',
-                        transition: 'background-color 0.2s'
-                    }}
-                >
-                    <Group justify="space-between">
-                        <Group>
-                            {selectedRuleIds.length > 0 ? (
-                                <>
-                                    <Text fw={500}>
-                                        {selectedRuleIds.length} rule{selectedRuleIds.length !== 1 ? 's' : ''} selected
-                                    </Text>
-                                    <Button
-                                        variant="subtle"
-                                        size="xs"
-                                        onClick={handleClearSelection}
-                                        leftSection={<IconX size={14} />}
-                                    >
-                                        Clear Selection
-                                    </Button>
-                                </>
-                            ) : (
-                                <Text c="dimmed" size="sm">
-                                    Select rules to perform bulk actions
-                                </Text>
-                            )}
-                        </Group>
-
-                        <Group>
-                            <Button
-                                variant="light"
-                                color="blue"
-                                leftSection={<IconFolders size={16} />}
-                                onClick={() => setMoveModalOpen(true)}
-                                disabled={selectedRuleIds.length === 0}
-                            >
-                                Move to Group
-                            </Button>
-                            <Button
-                                variant="light"
-                                color="red"
-                                leftSection={<IconTrash size={16} />}
-                                onClick={() => setDeleteModalOpen(true)}
-                                disabled={selectedRuleIds.length === 0}
-                            >
-                                Delete
-                            </Button>
-                        </Group>
-                    </Group>
-                </Paper>
+                <BulkActionsToolbar
+                    selectedCount={selectedRuleIds.length}
+                    onClearSelection={handleClearSelection}
+                    onMoveToGroup={() => setMoveModalOpen(true)}
+                    onDelete={() => setDeleteModalOpen(true)}
+                />
             )}
 
-            {/* Not Logged In Warning */}
             {!userLoggedIn && (
                 <Alert
                     icon={<IconLock size={16} />}
@@ -312,246 +223,35 @@ export const RulesListPage = () => {
                 </Alert>
             )}
 
-            {/* Rules Table */}
-            <Paper shadow="sm" withBorder>
-                <Group p="md" justify="space-between" style={{ borderBottom: '1px solid var(--mantine-color-dark-4)' }}>
-                    <Title order={3}>
-                        Rules ({filteredAndSortedRules.length})
-                    </Title>
-                </Group>
+            <RulesTable
+                rules={filteredAndSortedRules}
+                selectedRuleIds={selectedRuleIds}
+                showCheckbox={userLoggedIn}
+                sortField={sortField}
+                sortDirection={sortDirection}
+                onSelectAll={handleSelectAll}
+                onSelectRule={handleSelectRule}
+                onSort={handleSort}
+            />
 
-                {filteredAndSortedRules.length === 0 ? (
-                    <Center py={60}>
-                        <Text c="dimmed">No rules found matching your filters.</Text>
-                    </Center>
-                ) : (
-                    <Table.ScrollContainer minWidth={800}>
-                        <Table highlightOnHover striped verticalSpacing="sm">
-                            <Table.Thead>
-                                <Table.Tr>
-                                    {userLoggedIn && (
-                                        <Table.Th style={{ width: 40 }}>
-                                            <Checkbox
-                                                checked={allSelected}
-                                                indeterminate={someSelected}
-                                                onChange={handleSelectAll}
-                                            />
-                                        </Table.Th>
-                                    )}
-                                    <Table.Th
-                                        style={{ cursor: 'pointer', userSelect: 'none' }}
-                                        onClick={() => handleSort('name')}
-                                    >
-                                        <Group gap={4}>
-                                            <Text fw={600}>Name</Text>
-                                            {getSortIcon('name')}
-                                        </Group>
-                                    </Table.Th>
-                                    <Table.Th style={{ width: 100 }}>Status</Table.Th>
-                                    <Table.Th
-                                        style={{ cursor: 'pointer', userSelect: 'none' }}
-                                        onClick={() => handleSort('author')}
-                                    >
-                                        <Group gap={4}>
-                                            <Text fw={600}>Author</Text>
-                                            {getSortIcon('author')}
-                                        </Group>
-                                    </Table.Th>
-                                    <Table.Th
-                                        style={{ cursor: 'pointer', userSelect: 'none' }}
-                                        onClick={() => handleSort('group_name')}
-                                    >
-                                        <Group gap={4}>
-                                            <Text fw={600}>Group</Text>
-                                            {getSortIcon('group_name')}
-                                        </Group>
-                                    </Table.Th>
-                                    <Table.Th>Regions</Table.Th>
-                                    <Table.Th
-                                        style={{ cursor: 'pointer', userSelect: 'none', width: 80 }}
-                                        onClick={() => handleSort('version')}
-                                    >
-                                        <Group gap={4}>
-                                            <Text fw={600}>Ver</Text>
-                                            {getSortIcon('version')}
-                                        </Group>
-                                    </Table.Th>
-                                    <Table.Th
-                                        style={{ cursor: 'pointer', userSelect: 'none' }}
-                                        onClick={() => handleSort('trigger_count')}
-                                    >
-                                        <Group gap={4}>
-                                            <Text fw={600}>Triggers</Text>
-                                            {getSortIcon('trigger_count')}
-                                        </Group>
-                                    </Table.Th>
-                                    <Table.Th
-                                        style={{ cursor: 'pointer', userSelect: 'none' }}
-                                        onClick={() => handleSort('updated')}
-                                    >
-                                        <Group gap={4}>
-                                            <Text fw={600}>Updated</Text>
-                                            {getSortIcon('updated')}
-                                        </Group>
-                                    </Table.Th>
-                                </Table.Tr>
-                            </Table.Thead>
-                            <Table.Tbody>
-                                {filteredAndSortedRules.map((rule) => (
-                                    <Table.Tr
-                                        key={rule.id}
-                                        style={{
-                                            backgroundColor: selectedRuleIds.includes(rule.id)
-                                                ? 'var(--mantine-color-blue-9)'
-                                                : undefined,
-                                        }}
-                                    >
-                                        {userLoggedIn && (
-                                            <Table.Td>
-                                                <Checkbox
-                                                    checked={selectedRuleIds.includes(rule.id)}
-                                                    onChange={() => handleSelectRule(rule.id)}
-                                                />
-                                            </Table.Td>
-                                        )}
-                                        <Table.Td>
-                                            <Anchor
-                                                component={Link}
-                                                to={`/rules/${rule.id}`}
-                                                fw={500}
-                                            >
-                                                {rule.name}
-                                            </Anchor>
-                                        </Table.Td>
-                                        <Table.Td>
-                                            <Badge
-                                                color={rule.enabled ? 'green' : 'red'}
-                                                variant="light"
-                                                size="sm"
-                                            >
-                                                {rule.enabled ? 'Enabled' : 'Disabled'}
-                                            </Badge>
-                                        </Table.Td>
-                                        <Table.Td>
-                                            <Text size="sm" c="dimmed">{rule.author}</Text>
-                                        </Table.Td>
-                                        <Table.Td>
-                                            <Text size="sm">{rule.group_name}</Text>
-                                        </Table.Td>
-                                        <Table.Td>
-                                            <Group gap={4}>
-                                                {rule.regions.map((region) => (
-                                                    <Badge key={region} variant="dot" size="sm">
-                                                        {region}
-                                                    </Badge>
-                                                ))}
-                                            </Group>
-                                        </Table.Td>
-                                        <Table.Td>
-                                            <Text size="sm">{rule.version}</Text>
-                                        </Table.Td>
-                                        <Table.Td>
-                                            <Text size="sm">{rule.trigger_count}</Text>
-                                        </Table.Td>
-                                        <Table.Td>
-                                            <Tooltip label={new Date(rule.updated * 1000).toLocaleString()}>
-                                                <Text size="sm" c="dimmed">
-                                                    {new Date(rule.updated * 1000).toLocaleDateString()}
-                                                </Text>
-                                            </Tooltip>
-                                        </Table.Td>
-                                    </Table.Tr>
-                                ))}
-                            </Table.Tbody>
-                        </Table>
-                    </Table.ScrollContainer>
-                )}
-            </Paper>
-
-            {/* Delete Confirmation Modal */}
-            <Modal
+            <DeleteConfirmationModal
                 opened={deleteModalOpen}
+                ruleCount={selectedRuleIds.length}
+                isDeleting={deleteRulesMutation.isPending}
                 onClose={() => setDeleteModalOpen(false)}
-                title="Delete Rules"
-                centered
-            >
-                <Stack>
-                    <Alert color="red" icon={<IconAlertCircle size={16} />}>
-                        Are you sure you want to delete {selectedRuleIds.length} rule
-                        {selectedRuleIds.length !== 1 ? 's' : ''}? This action cannot be undone.
-                    </Alert>
+                onConfirm={handleDeleteSelected}
+            />
 
-                    <Group justify="flex-end">
-                        <Button
-                            variant="default"
-                            onClick={() => setDeleteModalOpen(false)}
-                            disabled={deleteRulesMutation.isPending}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            color="red"
-                            onClick={handleDeleteSelected}
-                            loading={deleteRulesMutation.isPending}
-                        >
-                            Delete {selectedRuleIds.length} Rule{selectedRuleIds.length !== 1 ? 's' : ''}
-                        </Button>
-                    </Group>
-                </Stack>
-            </Modal>
-
-            {/* Move to Group Modal */}
-            <Modal
+            <MoveToGroupModal
                 opened={moveModalOpen}
-                onClose={() => {
-                    setMoveModalOpen(false)
-                    setTargetGroup(null)
-                }}
-                title="Move Rules to Group"
-                centered
-            >
-                <Stack>
-                    <Text size="sm" c="dimmed">
-                        Move {selectedRuleIds.length} rule{selectedRuleIds.length !== 1 ? 's' : ''} to a
-                        different group
-                    </Text>
-
-                    <Select
-                        label="Target Group"
-                        placeholder="Select group"
-                        data={user?.groups?.map((group) => ({
-                            value: group.id.toString(),
-                            label: group.fullname
-                        })) || []}
-                        value={targetGroup}
-                        onChange={setTargetGroup}
-                        required
-                        searchable
-                        nothingFoundMessage="No groups found"
-                        disabled={moveRulesMutation.isPending}
-                    />
-
-                    <Group justify="flex-end">
-                        <Button
-                            variant="default"
-                            onClick={() => {
-                                setMoveModalOpen(false)
-                                setTargetGroup(null)
-                            }}
-                            disabled={moveRulesMutation.isPending}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={handleMoveToGroup}
-                            disabled={!targetGroup}
-                            loading={moveRulesMutation.isPending}
-                        >
-                            Move Rules
-                        </Button>
-                    </Group>
-                </Stack>
-            </Modal>
+                ruleCount={selectedRuleIds.length}
+                groups={user?.groups || []}
+                selectedGroup={targetGroup}
+                isMoving={moveRulesMutation.isPending}
+                onClose={handleCloseMoveModal}
+                onGroupChange={setTargetGroup}
+                onConfirm={handleMoveToGroup}
+            />
         </Stack>
     )
 }
