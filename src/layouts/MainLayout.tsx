@@ -4,7 +4,7 @@ import { useVersion } from '@/hooks/useApi'
 import { useLogout } from '@/hooks/useAuth'
 import { useStore } from '@/store/useStore'
 import { SignInModal } from '@/components/SignInModal/SignInModal'
-import { IconList, IconPlus, IconSettings } from '@tabler/icons-react'
+import { IconList, IconPlus, IconUsers, IconSettings } from '@tabler/icons-react'  // ← Add IconUsers
 
 export const MainLayout = () => {
     const navigate = useNavigate()
@@ -29,8 +29,9 @@ export const MainLayout = () => {
     const authenticated = isAuthenticated()
 
     const getActiveTab = () => {
-        if (location.pathname === '/') return 'rules'
+        if (location.pathname === '/' || location.pathname.startsWith('/rules')) return 'rules'
         if (location.pathname === '/create-rule') return 'create'
+        if (location.pathname === '/groups') return 'groups'  // ← Add groups
         if (location.pathname === '/settings') return 'settings'
         return 'rules'
     }
@@ -53,6 +54,7 @@ export const MainLayout = () => {
                                 onChange={(value) => {
                                     if (value === 'rules') navigate('/')
                                     if (value === 'create') navigate('/create-rule')
+                                    if (value === 'groups') navigate('/groups')  // ← Add groups
                                     if (value === 'settings') navigate('/settings')
                                 }}
                                 variant="pills"
@@ -69,6 +71,12 @@ export const MainLayout = () => {
                                         leftSection={<IconPlus size={16} />}
                                     >
                                         Create Rule
+                                    </Tabs.Tab>
+                                    <Tabs.Tab
+                                        value="groups"
+                                        leftSection={<IconUsers size={16} />}  // ← Add Groups tab
+                                    >
+                                        Groups
                                     </Tabs.Tab>
                                     <Tabs.Tab
                                         value="settings"

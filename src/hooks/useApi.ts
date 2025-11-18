@@ -74,3 +74,34 @@ export const useDeleteRules = () => {
         }
     })
 }
+
+export const useCreateGroup = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: async (data: { fullname: string; ad_group: string; public: boolean }) => {
+            await apiClient.createGroup(data)
+        },
+        onSuccess: () => {
+            // Invalidate user query to refresh groups
+            queryClient.invalidateQueries({ queryKey: ['user'] })
+        }
+    })
+}
+
+export const useUpdateGroup = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: async ({ groupId, data }: {
+            groupId: number
+            data: { fullname: string; ad_group: string; public: boolean }
+        }) => {
+            await apiClient.updateGroup(groupId, data)
+        },
+        onSuccess: () => {
+            // Invalidate user query to refresh groups
+            queryClient.invalidateQueries({ queryKey: ['user'] })
+        }
+    })
+}

@@ -45,3 +45,9 @@ export interface RuleFilters {
     search: string
     enabled: 'all' | 'enabled' | 'disabled'
 }
+
+export interface GroupFormData {
+    fullname: string
+    ad_group: string
+    public: boolean
+}

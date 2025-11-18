@@ -117,6 +117,38 @@ class ApiClient {
     async deleteRule(ruleId: number): Promise<void> {
         await this.client.post(`/rules/${ruleId}/delete`)
     }
+
+    async createGroup(data: {
+        fullname: string
+        ad_group: string
+        public: boolean
+    }): Promise<void> {
+        await this.client.post('/groups', {
+            id: null,
+            fullname: data.fullname,
+            ad_group: data.ad_group,
+            public: data.public,
+            adGroupExists: null,
+            adGroupError: false,
+            validating: false
+        })
+    }
+
+    async updateGroup(groupId: number, data: {
+        fullname: string
+        ad_group: string
+        public: boolean
+    }): Promise<void> {
+        await this.client.put(`/groups/${groupId}`, {
+            id: groupId,
+            fullname: data.fullname,
+            ad_group: data.ad_group,
+            public: data.public,
+            adGroupExists: null,
+            adGroupError: false,
+            validating: false
+        })
+    }
 }
 
 export const apiClient = new ApiClient()
