@@ -42,7 +42,7 @@ export const useLogout = () => {
         },
         onSuccess: () => {
             // Clear all cached data on logout
-            queryClient.clear()
+            queryClient.invalidateQueries()
         }
     })
 }
