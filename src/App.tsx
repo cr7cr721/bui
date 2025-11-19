@@ -4,6 +4,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { MainLayout } from './layouts/MainLayout'
 import { RulesListPage } from './pages/RulesListPage/RulesListPage'
 import { RuleDetailPage } from './pages/RuleDetailPage/RuleDetailPage'
+import { AdminPage } from "./pages/AdminPage/AdminPage";
 import { useStore } from './store/useStore'
 import { setAuthHelpers } from './services/api'
 import CreateRulePage from "./pages/CreateRulePage/CreateRulePage.tsx";
@@ -40,6 +41,7 @@ function App() {
                         <Route path="rules/:id" element={<RuleDetailPage />} />
                         <Route path="create-rule" element={<CreateRulePage />} />
                         <Route path="groups" element={<GroupsPage />}  />
+                        <Route path="admin" element={<AdminPage />} />
                         {/*<Route path="settings" element={<SettingsPage />} />*/}
                     </Route>
                 </Routes>

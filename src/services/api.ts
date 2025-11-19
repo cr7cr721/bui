@@ -149,6 +149,24 @@ class ApiClient {
             validating: false
         })
     }
+
+    async getChromieRegions(): Promise<string[]> {
+        const response = await this.client.get<string[]>('/chromie/regions')
+        return response.data
+    }
+
+    async getDisabledRegions(): Promise<string[]> {
+        const response = await this.client.get<string[]>('/chromie/regions/disabled')
+        return response.data
+    }
+
+    async enableRegion(region: string): Promise<void> {
+        await this.client.post(`/chromie/regions/${region}/enable`)
+    }
+
+    async disableRegion(region: string): Promise<void> {
+        await this.client.post(`/chromie/regions/${region}/disable`)
+    }
 }
 
 export const apiClient = new ApiClient()

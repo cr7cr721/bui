@@ -1,6 +1,6 @@
 import { AppShell, Group, Title, Text, Button, Tabs } from '@mantine/core'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
-import { useVersion } from '@/hooks/useApi'
+import {useUser, useVersion} from '@/hooks/useApi'
 import { useLogout } from '@/hooks/useAuth'
 import { useStore } from '@/store/useStore'
 import { SignInModal } from '@/components/SignInModal/SignInModal'
@@ -10,6 +10,7 @@ export const MainLayout = () => {
     const navigate = useNavigate()
     const location = useLocation()
     const { data: version } = useVersion()
+    const { data: user } = useUser()
     const logoutMutation = useLogout()
     const {
         isAuthenticated,
@@ -27,12 +28,14 @@ export const MainLayout = () => {
     }
 
     const authenticated = isAuthenticated()
+    const isAdmin = !!user?.admin
 
     const getActiveTab = () => {
         if (location.pathname === '/' || location.pathname.startsWith('/rules')) return 'rules'
         if (location.pathname === '/create-rule') return 'create'
         if (location.pathname === '/groups') return 'groups'  // ← Add groups
         if (location.pathname === '/settings') return 'settings'
+        if (location.pathname === '/admin') return 'admin'
         return 'rules'
     }
 
@@ -54,6 +57,7 @@ export const MainLayout = () => {
                                 onChange={(value) => {
                                     if (value === 'rules') navigate('/')
                                     if (value === 'create') navigate('/create-rule')
+                                    if (value === 'admin') navigate('/admin')
                                     if (value === 'groups') navigate('/groups')  // ← Add groups
                                     if (value === 'settings') navigate('/settings')
                                 }}
@@ -78,12 +82,14 @@ export const MainLayout = () => {
                                     >
                                         Groups
                                     </Tabs.Tab>
-                                    <Tabs.Tab
-                                        value="settings"
+                                  {isAdmin && (
+                                      <Tabs.Tab
+                                        value="admin"
                                         leftSection={<IconSettings size={16} />}
-                                    >
-                                        Settings
-                                    </Tabs.Tab>
+                                      >
+                                        Admin
+                                      </Tabs.Tab>
+                                  )}
                                 </Tabs.List>
                             </Tabs>
 

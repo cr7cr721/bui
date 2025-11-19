@@ -105,3 +105,35 @@ export const useUpdateGroup = () => {
         }
     })
 }
+
+export const useChromieRegions = () => {
+    return useQuery({
+        queryKey: ['chromie-regions'],
+        queryFn: () => apiClient.getChromieRegions()
+    })
+}
+
+export const useDisabledRegions = () => {
+    return useQuery({
+        queryKey: ['disabled-regions'],
+        queryFn: () => apiClient.getDisabledRegions()
+    })
+}
+
+export const useToggleRegion = () => {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: async ({ region, enable }: { region: string; enable: boolean }) => {
+            if (enable) {
+                await apiClient.enableRegion(region)
+            } else {
+                await apiClient.disableRegion(region)
+            }
+        },
+        onSuccess: () => {
+            // Refetch disabled regions list
+            queryClient.invalidateQueries({ queryKey: ['disabled-regions'] })
+        }
+    })
+}
