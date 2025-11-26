@@ -1,7 +1,10 @@
+// components/SignInModal/SignInModal.tsx
 import { Modal, TextInput, PasswordInput, Button, Stack, Alert } from '@mantine/core'
 import { useForm } from '@mantine/form'
-import { useLogin } from '@/hooks/useAuth'
+import { useMutation } from '@tanstack/react-query'
 import { useStore } from '@/store/useStore'
+import { authService } from '@/services'
+import type { LoginCredentials } from '@/services'
 import { IconAlertCircle } from '@tabler/icons-react'
 
 interface SignInModalProps {
@@ -9,14 +12,17 @@ interface SignInModalProps {
     onClose: () => void
 }
 
-interface LoginCredentials {
-    user: string
-    password: string
-}
-
 export const SignInModal = ({ isOpen, onClose }: SignInModalProps) => {
-    const { setAuthToken } = useStore()
-    const loginMutation = useLogin()
+    const setToken = useStore((state) => state.setToken)
+
+    const loginMutation = useMutation({
+        mutationFn: (credentials: LoginCredentials) => authService.login(credentials),
+        onSuccess: (data) => {
+            setToken(data.token)
+            form.reset()
+            onClose()
+        }
+    })
 
     const form = useForm<LoginCredentials>({
         initialValues: {
@@ -30,13 +36,7 @@ export const SignInModal = ({ isOpen, onClose }: SignInModalProps) => {
     })
 
     const handleSubmit = (values: LoginCredentials) => {
-        loginMutation.mutate(values, {
-            onSuccess: (response) => {
-                setAuthToken(response.token)
-                form.reset()
-                onClose()
-            }
-        })
+        loginMutation.mutate(values)
     }
 
     const handleClose = () => {
