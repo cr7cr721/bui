@@ -1,20 +1,25 @@
+// store/useStore.ts
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { setAuthHelpers } from '@/services'
 import type { RuleFilters } from '@/types/api'
 
 interface AppState {
-    // Existing state
+    // Filters state
     filters: RuleFilters
     setFilters: (filters: Partial<RuleFilters>) => void
     resetFilters: () => void
+
+    // Selection state
     selectedRules: number[]
     setSelectedRules: (ruleIds: number[]) => void
     toggleRuleSelection: (ruleId: number) => void
+    clearSelection: () => void
 
     // Auth state
-    authToken: string | null
+    token: string | null
     isSignInModalOpen: boolean
-    setAuthToken: (token: string | null) => void
+    setToken: (token: string | null) => void
     setSignInModalOpen: (open: boolean) => void
     clearAuth: () => void
     isAuthenticated: () => boolean
@@ -30,13 +35,15 @@ const defaultFilters: RuleFilters = {
 export const useStore = create<AppState>()(
     persist(
         (set, get) => ({
-            // Existing state
+            // Filters state
             filters: defaultFilters,
             setFilters: (newFilters) =>
                 set((state) => ({
                     filters: { ...state.filters, ...newFilters }
                 })),
             resetFilters: () => set({ filters: defaultFilters }),
+
+            // Selection state
             selectedRules: [],
             setSelectedRules: (ruleIds) => set({ selectedRules: ruleIds }),
             toggleRuleSelection: (ruleId) =>
@@ -45,22 +52,31 @@ export const useStore = create<AppState>()(
                         ? state.selectedRules.filter(id => id !== ruleId)
                         : [...state.selectedRules, ruleId]
                 })),
+            clearSelection: () => set({ selectedRules: [] }),
 
             // Auth state
-            authToken: null,
+            token: null,
             isSignInModalOpen: false,
-            setAuthToken: (token) => set({ authToken: token }),
+            setToken: (token) => set({ token }),
             setSignInModalOpen: (open) => set({ isSignInModalOpen: open }),
-            clearAuth: () => set({ authToken: null }),
-            isAuthenticated: () => !!get().authToken
+            clearAuth: () => set({
+                token: null,
+                selectedRules: [] // Clear selection on logout
+            }),
+            isAuthenticated: () => !!get().token
         }),
         {
             name: 'beam-dashboard-storage',
-            // Only persist auth token and filters, not UI state
             partialize: (state) => ({
-                authToken: state.authToken,
+                token: state.token,
                 filters: state.filters
             })
         }
     )
+)
+
+// Initialize auth helpers for the HTTP client
+setAuthHelpers(
+    () => useStore.getState().token,
+    () => useStore.getState().clearAuth()
 )

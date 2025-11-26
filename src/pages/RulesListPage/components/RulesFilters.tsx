@@ -1,7 +1,7 @@
 import { Paper, Title, Grid, Select, TextInput, Group, Button } from '@mantine/core'
 import { useForm } from '@mantine/form'
 import { useStore } from '@/store/useStore.ts'
-import { useUser, useRegions } from '@/hooks/useApi.ts'
+import { useUser, useRegions } from '@/hooks/useApi'
 import type { RuleFilters } from '@/types/api.ts'
 import { IconSearch, IconFilter, IconFilterOff } from '@tabler/icons-react'
 
