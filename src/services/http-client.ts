@@ -73,20 +73,24 @@ class HttpClient {
         throw new Error(error instanceof Error ? error.message : 'Unknown error')
     }
 
-    get<T>(url: string, params?: Record<string, any>): Promise<T> {
-        return this.instance.get<T>(url, { params }).then(res => res.data)
+    async get<T>(url: string, params?: Record<string, unknown>): Promise<T> {
+        const res = await this.instance.get<T>(url, { params })
+        return res.data
     }
 
-    post<T>(url: string, data?: any, params?: Record<string, any>): Promise<T> {
-        return this.instance.post<T>(url, data, { params }).then(res => res.data)
+    async post<T>(url: string, data?: unknown, params?: Record<string, unknown>): Promise<T> {
+        const res = await this.instance.post<T>(url, data, { params })
+        return res.data
     }
 
-    put<T>(url: string, data?: any): Promise<T> {
-        return this.instance.put<T>(url, data).then(res => res.data)
+    async put<T>(url: string, data?: unknown): Promise<T> {
+        const res = await this.instance.put<T>(url, data)
+        return res.data
     }
 
-    delete<T>(url: string): Promise<T> {
-        return this.instance.delete<T>(url).then(res => res.data)
+    async delete<T>(url: string): Promise<T> {
+        const res = await this.instance.delete<T>(url)
+        return res.data
     }
 }
 
