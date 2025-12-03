@@ -4,11 +4,11 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { MainLayout } from './layouts/MainLayout'
 import { RulesListPage } from './pages/RulesListPage/RulesListPage'
 import { RuleDetailPage } from './pages/RuleDetailPage/RuleDetailPage'
-import { AdminPage } from "./pages/AdminPage/AdminPage";
+import { AdminPage } from "./pages/AdminPage/AdminPage"
 import { useStore } from './store/useStore'
 import { setAuthHelpers } from './services/api'
-import CreateRulePage from "./pages/CreateRulePage/CreateRulePage.tsx";
-import {GroupsPage} from "@/pages/GroupsPage/GroupsPage.tsx";
+import CreateRulePage from "./pages/CreateRulePage/CreateRulePage.tsx"
+import { GroupsPage } from "@/pages/GroupsPage/GroupsPage.tsx"
 
 // Create a client
 const queryClient = new QueryClient({
@@ -23,12 +23,12 @@ const queryClient = new QueryClient({
 
 // Initialize auth helpers
 const initializeAuth = () => {
-    const getAuthToken = () => useStore.getState().authToken
+    const getAuthToken = () => useStore.getState().token
     const clearAuth = () => useStore.getState().clearAuth()
     setAuthHelpers(getAuthToken, clearAuth)
 }
 
-function App() {
+const App = () => {
     // Initialize auth helpers on app start
     initializeAuth()
 
@@ -40,7 +40,7 @@ function App() {
                         <Route index element={<RulesListPage />} />
                         <Route path="rules/:id" element={<RuleDetailPage />} />
                         <Route path="create-rule" element={<CreateRulePage />} />
-                        <Route path="groups" element={<GroupsPage />}  />
+                        <Route path="groups" element={<GroupsPage />} />
                         <Route path="admin" element={<AdminPage />} />
                         {/*<Route path="settings" element={<SettingsPage />} />*/}
                     </Route>
