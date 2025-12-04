@@ -8,10 +8,10 @@ import '@mantine/core/styles.css'
 import '@mantine/notifications/styles.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-    <React.StrictMode>
-        <MantineProvider defaultColorScheme="dark">
-            <Notifications />
-            <App />
-        </MantineProvider>
-    </React.StrictMode>,
+  <React.StrictMode>
+    <MantineProvider defaultColorScheme="dark">
+      <Notifications />
+      <App />
+    </MantineProvider>
+  </React.StrictMode>
 )

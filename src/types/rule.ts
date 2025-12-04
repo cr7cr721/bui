@@ -1,30 +1,30 @@
 export interface RuleFormData {
-    // Info & Schedule
-    name: string
-    authorEmail: string
-    regions: string[]
-    scheduleType: 'default' | 'interval' | 'cron'
-    scheduleValue?: string
+  // Info & Schedule
+  name: string
+  authorEmail: string
+  regions: string[]
+  scheduleType: 'default' | 'interval' | 'cron'
+  scheduleValue?: string
 
-    // Parameters
-    parameters: Array<{ key: string; value: string }>
-    parametersJson?: string
+  // Parameters
+  parameters: Array<{ key: string; value: string }>
+  parametersJson?: string
 
-    // Inputs
-    inputs: Array<{
-        type: 'search' | 'http' | 'static' | 'metric'
-        config: Record<string, unknown>
-    }>
+  // Inputs
+  inputs: Array<{
+    type: 'search' | 'http' | 'static' | 'metric'
+    config: Record<string, unknown>
+  }>
 
-    // Transform
-    transformCode: string
+  // Transform
+  transformCode: string
 
-    // Condition
-    conditionCode: string
+  // Condition
+  conditionCode: string
 
-    // Actions
-    actions: Array<{
-        type: 'email' | 'telemetry' | 'toggle' | 'http'
-        config: Record<string, unknown>
-    }>
+  // Actions
+  actions: Array<{
+    type: 'email' | 'telemetry' | 'toggle' | 'http'
+    config: Record<string, unknown>
+  }>
 }

@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ development ]
+    branches: [development]
   pull_request:
-    branches: [ development ]
+    branches: [development]
 
 jobs:
   test:
@@ -105,7 +105,7 @@ jobs:
         run: |
           echo "🏥 Performing health check..."
           sleep 30  # Wait for deployment to settle
-          
+
           # Check if the application is responding
           if curl -f -s https://gdp-beam-ui.dev.data.blz.dev/ > /dev/null; then
             echo "✅ Health check passed - Application is responding"

@@ -6,25 +6,22 @@ import { SignInModal } from '@/components/SignInModal/SignInModal'
 import { Header } from './components/Header'
 
 export const MainLayout = () => {
-    const isSignInModalOpen = useStore((state) => state.isSignInModalOpen)
-    const setSignInModalOpen = useStore((state) => state.setSignInModalOpen)
+  const isSignInModalOpen = useStore((state) => state.isSignInModalOpen)
+  const setSignInModalOpen = useStore((state) => state.setSignInModalOpen)
 
-    return (
-        <>
-            <AppShell header={{ height: 70 }} padding="md">
-                <AppShell.Header>
-                    <Header />
-                </AppShell.Header>
+  return (
+    <>
+      <AppShell header={{ height: 70 }} padding="md">
+        <AppShell.Header>
+          <Header />
+        </AppShell.Header>
 
-                <AppShell.Main>
-                    <Outlet />
-                </AppShell.Main>
-            </AppShell>
+        <AppShell.Main>
+          <Outlet />
+        </AppShell.Main>
+      </AppShell>
 
-            <SignInModal
-                isOpen={isSignInModalOpen}
-                onClose={() => setSignInModalOpen(false)}
-            />
-        </>
-    )
+      <SignInModal isOpen={isSignInModalOpen} onClose={() => setSignInModalOpen(false)} />
+    </>
+  )
 }

@@ -33,6 +33,7 @@ BEAM Rules Dashboard V2 is a complete rewrite of the BEAM UI with modern tooling
 - Write JavaScript transforms and conditions with a built-in code editor
 
 **Key Features:**
+
 - 🌙 Dark mode by default
 - 📱 Responsive design
 - ♿ Accessible (WCAG compliant)
@@ -47,29 +48,36 @@ BEAM Rules Dashboard V2 is a complete rewrite of the BEAM UI with modern tooling
 ## 🛠 Tech Stack
 
 ### Core
+
 - **React 19** - UI library
 - **TypeScript 5.8** - Type safety
 - **Vite 7** - Build tool and dev server
 
 ### UI & Styling
+
 - **Mantine 8.3** - Component library and design system
 - **Tabler Icons** - Icon library
 
 ### State Management
+
 - **React Query 5** - Server state, caching, and data fetching
 - **Zustand 5** - Global client state
 - **React Hook Form 7** - Form state management
 
 ### Routing & Navigation
+
 - **React Router 7** - Client-side routing
 
 ### Code Editor
+
 - **Monaco Editor 0.54** - VS Code editor embedded in browser
 
 ### HTTP Client
+
 - **Axios 1.11** - API requests with interceptors
 
 ### Development Tools
+
 - **ESLint** - Code linting
 - **TypeScript ESLint** - TypeScript-specific linting rules
 - **Vitest** - Unit testing framework
@@ -84,44 +92,50 @@ Before you begin, ensure you have the following installed:
 ### Required Software
 
 1. **Node.js** >= 18.0.0 (LTS recommended)
-    - Download: https://nodejs.org/
-    - Check version: `node --version`
+   - Download: https://nodejs.org/
+   - Check version: `node --version`
 
 2. **Yarn** >= 1.22.0
-    - **Install on Mac:**
+   - **Install on Mac:**
+
 ```bash
      npm install -g yarn
 ```
+
      Or if you have Homebrew:
+
 ```bash
      brew install yarn
 ```
+
 - **Install on Windows/Linux:** https://classic.yarnpkg.com/en/docs/install
 - Check version: `yarn --version`
 
 3. **Git**
-    - Download: https://git-scm.com/
-    - Check version: `git --version`
+   - Download: https://git-scm.com/
+   - Check version: `git --version`
 
 ### Verify Installation
+
 ```bash
 node --version    # Should be >= 18.0.0
 yarn --version    # Should be >= 1.22.0
 git --version     # Any modern version
 ```
 
-If all commands return versions, you're ready! 🚀
----
+## If all commands return versions, you're ready! 🚀
 
 ## 🚀 Getting Started
 
 ### 1. Clone the Repository
+
 ```bash
 git clone https://ghosthub.corp.blizzard.net/gdp/beam-ui-v2.git
 cd beam-ui-v2
 ```
 
 ### 2. Install Dependencies
+
 ```bash
 yarn install
 ```
@@ -131,11 +145,13 @@ This will install all dependencies listed in `package.json`. First install takes
 ### 3. Configure Environment Variables
 
 Create a `.env` file in the project root (copy from `.env.example`):
+
 ```bash
 cp .env.example .env
 ```
 
 Edit `.env` with your configuration:
+
 ```env
 # API Configuration
 VITE_API_BASE_URL=https://gdp-beam-api.dev.data.blz.dev
@@ -145,6 +161,7 @@ VITE_ENV=development
 ```
 
 ### 4. Start Development Server
+
 ```bash
 yarn dev
 ```
@@ -156,10 +173,12 @@ The app will be available at **http://localhost:5173**
 ### 5. Sign In
 
 Use your Blizzard credentials:
+
 - **Username:** Your blizzard username
 - **Password:** Your blizzard password
 
 The app will:
+
 1. Authenticate with the BEAM API
 2. Store JWT token in localStorage
 3. Load your available groups and regions
@@ -170,6 +189,7 @@ The app will:
 ## 🎮 Available Scripts
 
 ### Development
+
 ```bash
 # Start development server (http://localhost:5173)
 yarn dev
@@ -185,6 +205,7 @@ yarn lint:fix
 ```
 
 ### Building
+
 ```bash
 # Build for production
 yarn build
@@ -194,6 +215,7 @@ yarn preview
 ```
 
 ### Testing
+
 ```bash
 # Run tests in watch mode
 yarn test
@@ -209,6 +231,7 @@ yarn test:coverage
 ```
 
 ### Other
+
 ```bash
 # Clean install (remove node_modules and reinstall)
 rm -rf node_modules yarn.lock
@@ -223,6 +246,7 @@ yarn upgrade-interactive --latest
 ## 🔧 Environment Variables
 
 Create a `.env` file in the root directory:
+
 ```env
 # API Configuration
 VITE_API_BASE_URL=https://gdp-beam-api.dev.data.blz.dev
@@ -237,6 +261,7 @@ VITE_DEBUG=true
 **Note:** All environment variables must be prefixed with `VITE_` to be exposed to the client.
 
 **Access in code:**
+
 ```typescript
 const apiUrl = import.meta.env.VITE_API_BASE_URL
 ```
@@ -248,6 +273,7 @@ const apiUrl = import.meta.env.VITE_API_BASE_URL
 ### Path Aliases
 
 The project uses path aliases for cleaner imports:
+
 ```typescript
 // ❌ Before
 import { useStore } from '../../../store/useStore'
@@ -257,17 +283,20 @@ import { useStore } from '@/store/useStore'
 ```
 
 **Aliases configured:**
+
 - `@/*` → `src/*`
 
 ### Code Editor Setup
 
 **Recommended VSCode Extensions:**
+
 - ESLint
 - Prettier
 - TypeScript and JavaScript Language Features
 - Mantine Snippets
 
 **VSCode Settings (.vscode/settings.json):**
+
 ```json
 {
   "editor.formatOnSave": true,
@@ -292,18 +321,22 @@ If HMR fails, the page will auto-reload.
 ### State Management
 
 **Zustand Store** (`src/store/useStore.ts`):
+
 - Global application state
 - Persists to localStorage
 - Use for: auth token, UI state, filters
+
 ```typescript
 // Usage
 const { authToken, setAuthToken } = useStore()
 ```
 
 **React Query** (`src/hooks/useApi.ts`):
+
 - Server state (API data)
 - Automatic caching and refetching
 - Use for: rules, users, regions
+
 ```typescript
 // Usage
 const { data: rules, isLoading } = useRules('DEV', 1)
@@ -312,6 +345,7 @@ const { data: rules, isLoading } = useRules('DEV', 1)
 ### Adding a New Page
 
 1. **Create page component:**
+
 ```typescript
 // src/pages/SettingsPage/SettingsPage.tsx
 export const SettingsPage = () => {
@@ -320,11 +354,13 @@ export const SettingsPage = () => {
 ```
 
 2. **Add route in App.tsx:**
+
 ```typescript
 <Route path="/settings" element={<SettingsPage />} />
 ```
 
 3. **Add navigation link in MainLayout.tsx:**
+
 ```typescript
 <Tabs.Tab value="settings">Settings</Tabs.Tab>
 ```
@@ -332,6 +368,7 @@ export const SettingsPage = () => {
 ### Adding a New API Endpoint
 
 1. **Add method to API client:**
+
 ```typescript
 // src/services/api.ts
 async deleteRule(id: number): Promise<void> {
@@ -340,16 +377,18 @@ async deleteRule(id: number): Promise<void> {
 ```
 
 2. **Create React Query hook:**
+
 ```typescript
 // src/hooks/useApi.ts
 export const useDeleteRule = () => {
   return useMutation({
-    mutationFn: (id: number) => apiClient.deleteRule(id)
+    mutationFn: (id: number) => apiClient.deleteRule(id),
   })
 }
 ```
 
 3. **Use in component:**
+
 ```typescript
 const deleteMutation = useDeleteRule()
 deleteMutation.mutate(ruleId)
@@ -360,11 +399,13 @@ deleteMutation.mutate(ruleId)
 ## 🏗 Building for Production
 
 ### Build
+
 ```bash
 yarn build
 ```
 
 This creates an optimized production build in the `dist/` folder:
+
 ```
 dist/
 ├── assets/
@@ -376,12 +417,14 @@ dist/
 ```
 
 **Build output:**
+
 - Minified and tree-shaken
 - Code splitting for optimal loading
 - Hash-based cache busting
 - Source maps for debugging
 
 ### Preview Build Locally
+
 ```bash
 yarn preview
 ```
@@ -395,6 +438,7 @@ Serves the production build at http://localhost:4173
 ## 🧪 Testing
 
 ### Run Tests
+
 ```bash
 # Watch mode (recommended for development)
 yarn test
@@ -409,6 +453,7 @@ yarn test:run
 ### Writing Tests
 
 **Component test example:**
+
 ```typescript
 // src/components/RulesFilters/RulesFilters.test.tsx
 import { render, screen } from '@testing-library/react'
@@ -424,6 +469,7 @@ describe('RulesFilters', () => {
 ```
 
 **Hook test example:**
+
 ```typescript
 // src/hooks/useApi.test.ts
 import { renderHook } from '@testing-library/react'
@@ -438,6 +484,7 @@ describe('useRules', () => {
 ```
 
 ### Test Coverage
+
 ```bash
 yarn test:coverage
 ```
@@ -451,6 +498,7 @@ Coverage report will be generated in `coverage/` folder.
 ### ESLint
 
 The project uses ESLint with TypeScript support:
+
 ```bash
 # Check for issues
 yarn lint
@@ -460,6 +508,7 @@ yarn lint:fix
 ```
 
 **Key rules:**
+
 - TypeScript strict mode
 - No unused variables (except `_prefixed`)
 - React Hooks rules
@@ -470,12 +519,14 @@ yarn lint:fix
 **Strict mode enabled** - All type errors must be fixed before build.
 
 **Best practices:**
+
 - Define interfaces for all data structures
 - Use `unknown` instead of `any`
 - Export types from `src/types/`
 - Use const assertions for literal types
 
 **Example:**
+
 ```typescript
 // ✅ Good
 interface User {
@@ -496,6 +547,7 @@ const user: any = { id: 1, name: 'John' }
 - **Types:** PascalCase (`RuleFormData`)
 
 ### File Organization
+
 ```
 ComponentName/
 ├── ComponentName.tsx       # Main component
@@ -509,6 +561,7 @@ ComponentName/
 ## 🏛 Architecture
 
 ### Component Hierarchy
+
 ```
 App
 └── MantineProvider (theme)
@@ -522,6 +575,7 @@ App
 ```
 
 ### Data Flow
+
 ```
 User Action
     ↓
@@ -539,6 +593,7 @@ Component re-renders with new data
 ```
 
 ### Authentication Flow
+
 ```
 1. User enters credentials
 2. POST /user/login
@@ -550,19 +605,20 @@ Component re-renders with new data
 
 ### State Management Strategy
 
-| State Type | Tool | Example | Persistence |
-|------------|------|---------|-------------|
-| **Server State** | React Query | Rules, Users, Regions | Memory (5min cache) |
-| **Auth State** | Zustand | JWT Token | localStorage |
-| **UI State** | Zustand | Filters, Selected Items | localStorage |
-| **Form State** | React Hook Form | Create Rule Form | Memory only |
-| **Local State** | useState | Modal open/close | Memory only |
+| State Type       | Tool            | Example                 | Persistence         |
+| ---------------- | --------------- | ----------------------- | ------------------- |
+| **Server State** | React Query     | Rules, Users, Regions   | Memory (5min cache) |
+| **Auth State**   | Zustand         | JWT Token               | localStorage        |
+| **UI State**     | Zustand         | Filters, Selected Items | localStorage        |
+| **Form State**   | React Hook Form | Create Rule Form        | Memory only         |
+| **Local State**  | useState        | Modal open/close        | Memory only         |
 
 ---
 
 ## 📡 API Documentation
 
 ### Base URL
+
 ```
 Development: https://gdp-beam-api.dev.data.blz.dev
 Production: TBD
@@ -571,6 +627,7 @@ Production: TBD
 ### Authentication
 
 All endpoints (except login) require JWT token in header:
+
 ```
 Authorization: Bearer <token>
 ```
@@ -578,9 +635,11 @@ Authorization: Bearer <token>
 ### Endpoints
 
 #### **POST** `/user/login`
+
 Authenticate user and receive JWT token.
 
 **Request:**
+
 ```json
 {
   "user": "username",
@@ -589,6 +648,7 @@ Authenticate user and receive JWT token.
 ```
 
 **Response:**
+
 ```json
 {
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
@@ -596,9 +656,11 @@ Authenticate user and receive JWT token.
 ```
 
 #### **GET** `/user`
+
 Get current user info.
 
 **Response:**
+
 ```json
 {
   "username": "jdoe",
@@ -610,9 +672,11 @@ Get current user info.
 ```
 
 #### **GET** `/regions`
+
 Get available regions.
 
 **Response:**
+
 ```json
 [
   {
@@ -623,9 +687,11 @@ Get available regions.
 ```
 
 #### **GET** `/rules?regions=DEV&group=1`
+
 Get rules for specified region and group.
 
 **Response:**
+
 ```json
 [
   {
@@ -640,17 +706,21 @@ Get rules for specified region and group.
 ```
 
 #### **GET** `/rules/values/author?group=1`
+
 Get list of authors for a group.
 
 **Response:**
+
 ```json
 ["jdoe@blizzard.com", "asmith@blizzard.com"]
 ```
 
 #### **GET** `/version`
+
 Get API version.
 
 **Response:**
+
 ```json
 "1.4.6-1.6517d9602e"
 ```
@@ -660,6 +730,7 @@ Get API version.
 ## 🐛 Troubleshooting
 
 ### Port Already in Use
+
 ```bash
 # Error: Port 5173 is already in use
 
@@ -676,6 +747,7 @@ yarn dev --port 3000
 ```
 
 ### Module Not Found
+
 ```bash
 # Error: Cannot find module '@/...'
 
@@ -688,6 +760,7 @@ yarn install
 ```
 
 ### Vite Build Fails
+
 ```bash
 # Error: Build fails with TypeScript errors
 
@@ -699,6 +772,7 @@ yarn build
 ```
 
 ### API Connection Issues
+
 ```bash
 # Error: Network Error / CORS issues
 
@@ -711,6 +785,7 @@ yarn build
 ```
 
 ### Authentication Issues
+
 ```bash
 # Error: 401 Unauthorized
 
@@ -722,6 +797,7 @@ yarn build
 ```
 
 ### Monaco Editor Not Loading
+
 ```bash
 # Error: Monaco editor blank or not rendering
 
@@ -733,19 +809,20 @@ yarn build
 ```
 
 ### Yarn Install Fails
+
 ```bash
 # Error: yarn install fails
 
 # Solutions:
 1. Delete yarn.lock and node_modules:
    rm -rf node_modules yarn.lock
-   
+
 2. Clear Yarn cache:
    yarn cache clean
-   
+
 3. Reinstall:
    yarn install
-   
+
 4. If still fails, try:
    yarn install --network-timeout 100000
 ```
@@ -758,11 +835,13 @@ yarn build
 
 1. **Clone the repo** (see [Getting Started](#getting-started))
 2. **Create a branch** from `development`:
+
 ```bash
    git checkout development
    git pull origin development
    git checkout -b feature/my-feature
 ```
+
 3. **Make your changes**
 4. **Test thoroughly**
 5. **Commit with conventional commits**
@@ -771,6 +850,7 @@ yarn build
 ### Conventional Commits
 
 Use conventional commit format:
+
 ```
 <type>(<scope>): <description>
 
@@ -780,6 +860,7 @@ Use conventional commit format:
 ```
 
 **Types:**
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation only
@@ -789,6 +870,7 @@ Use conventional commit format:
 - `chore`: Maintenance tasks
 
 **Examples:**
+
 ```bash
 git commit -m "feat(rules): add delete rule functionality"
 git commit -m "fix(auth): handle expired token correctly"
@@ -823,6 +905,7 @@ git commit -m "refactor(forms): simplify validation logic"
 ## 📚 Additional Resources
 
 ### Official Documentation
+
 - [React Docs](https://react.dev)
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/)
 - [Vite Guide](https://vitejs.dev/guide/)
@@ -833,12 +916,14 @@ git commit -m "refactor(forms): simplify validation logic"
 - [Monaco Editor](https://microsoft.github.io/monaco-editor/)
 
 ### Internal Resources
+
 - [BEAM API Documentation](https://wiki.blizzard.com/beam-api)
 - [Design System Figma](https://figma.com/beam-design-system)
 - [Jira Board](https://jira.blizzard.com/projects/BEAM)
 - [Confluence Wiki](https://confluence.blizzard.com/beam)
 
 ### Learning Resources
+
 - [React Query Essentials](https://ui.dev/react-query)
 - [TypeScript Deep Dive](https://basarat.gitbook.io/typescript/)
 - [Mantine Patterns](https://mantine.dev/guides/recipes/)
@@ -856,10 +941,12 @@ This project is proprietary and confidential.
 ## 👥 Team
 
 **Frontend Team:**
+
 - Mohammed Mohiuddin - Lead Developer
 - Chris Santiago - Product Owner
 
 **Backend Team:**
+
 - Perry - API Development
 
 **Questions?** Reach out in #beam-ui Slack channel.
@@ -869,6 +956,7 @@ This project is proprietary and confidential.
 ## 🗺 Roadmap
 
 ### ✅ Completed (Sprint 13-14)
+
 - [x] Project setup with Vite + TypeScript
 - [x] Mantine UI integration
 - [x] Authentication flow
@@ -878,11 +966,13 @@ This project is proprietary and confidential.
 - [x] Monaco code editors
 
 ### 🚧 In Progress (Sprint 15)
+
 - [ ] API integration for create rule
 - [ ] Edit rule functionality
 - [ ] Delete rule functionality
 
 ### 📅 Planned (Sprint 16+)
+
 - [ ] Rule versioning
 - [ ] Bulk operations
 - [ ] Advanced search
