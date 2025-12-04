@@ -1,8 +1,7 @@
 // layouts/components/UserMenu.tsx
 import { Group, Text, Button, Divider, Box } from '@mantine/core'
-import { useUser } from '@/hooks/useApi'
+import { useLogout, useUser } from '@/hooks/useApi'
 import { useStore } from '@/store/useStore'
-import { useLogout } from '@/hooks/useApi/useAuth'
 
 export const UserMenu = () => {
   const { data: user } = useUser()

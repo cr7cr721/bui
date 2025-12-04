@@ -1,6 +1,6 @@
 // hooks/useApi/index.ts
 // Auth hooks
-export { useUser, useVersion } from './useAuth'
+export { useUser, useVersion, useLogin, useLogout } from './useAuth'
 
 // Rules hooks
 export { useRules, useAuthors, useMoveRulesToGroup, useDeleteRules } from './useRules'

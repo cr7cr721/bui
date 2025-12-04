@@ -2,12 +2,11 @@
 import { useEffect } from 'react'
 import { Modal, TextInput, PasswordInput, Button, Stack, Alert, Text } from '@mantine/core'
 import { useForm } from '@mantine/form'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useStore } from '@/store/useStore'
-import { authService } from '@/services'
-import type { LoginCredentials } from '@/services'
 import { IconAlertCircle, IconCheck } from '@tabler/icons-react'
-import { useUser } from '@/hooks/useApi'
+import { useUser, useLogin } from '@/hooks/useApi'
+import type { LoginCredentials } from '@/services'
+
+const WELCOME_DISPLAY_MS = 1500
 
 interface SignInModalProps {
   isOpen: boolean
@@ -15,19 +14,8 @@ interface SignInModalProps {
 }
 
 export const SignInModal = ({ isOpen, onClose }: SignInModalProps) => {
-  const setToken = useStore((state) => state.setToken)
-  const queryClient = useQueryClient()
-
   const { data: user, isLoading: isLoadingUser } = useUser()
-
-  const loginMutation = useMutation({
-    mutationFn: (credentials: LoginCredentials) => authService.login(credentials),
-    onSuccess: (data) => {
-      setToken(data.token)
-      // Invalidate to trigger fresh user fetch
-      queryClient.invalidateQueries({ queryKey: ['user'] })
-    },
-  })
+  const loginMutation = useLogin()
 
   const form = useForm<LoginCredentials>({
     initialValues: {
@@ -40,21 +28,20 @@ export const SignInModal = ({ isOpen, onClose }: SignInModalProps) => {
     },
   })
 
-  // Close modal after user data is loaded
-  useEffect(() => {
-    if (loginMutation.isSuccess && user) {
-      const timer = setTimeout(() => {
-        form.reset()
-        loginMutation.reset()
-        onClose()
-      }, 1500) // Show welcome message for 1.5 seconds
-      return () => clearTimeout(timer)
-    }
-  }, [loginMutation.isSuccess, user])
+  const isLoading = loginMutation.isPending || (loginMutation.isSuccess && isLoadingUser)
+  const showWelcome = loginMutation.isSuccess && user
 
-  const handleSubmit = (values: LoginCredentials) => {
-    loginMutation.mutate(values)
-  }
+  useEffect(() => {
+    if (!showWelcome) return
+
+    const timer = setTimeout(() => {
+      form.reset()
+      loginMutation.reset()
+      onClose()
+    }, WELCOME_DISPLAY_MS)
+
+    return () => clearTimeout(timer)
+  }, [showWelcome, form, loginMutation, onClose])
 
   const handleClose = () => {
     form.reset()
@@ -62,8 +49,11 @@ export const SignInModal = ({ isOpen, onClose }: SignInModalProps) => {
     onClose()
   }
 
-  const isLoading = loginMutation.isPending || (loginMutation.isSuccess && isLoadingUser)
-  const showWelcome = loginMutation.isSuccess && user
+  const getButtonText = () => {
+    if (loginMutation.isPending) return 'Signing in...'
+    if (isLoadingUser) return 'Loading profile...'
+    return 'Sign In'
+  }
 
   return (
     <Modal
@@ -83,7 +73,7 @@ export const SignInModal = ({ isOpen, onClose }: SignInModalProps) => {
           </Text>
         </Stack>
       ) : (
-        <form onSubmit={form.onSubmit(handleSubmit)}>
+        <form onSubmit={form.onSubmit((values) => loginMutation.mutate(values))}>
           <Stack gap="md">
             <TextInput
               label="Username"
@@ -108,11 +98,7 @@ export const SignInModal = ({ isOpen, onClose }: SignInModalProps) => {
             )}
 
             <Button type="submit" fullWidth loading={isLoading}>
-              {loginMutation.isPending
-                ? 'Signing in...'
-                : isLoadingUser
-                  ? 'Loading profile...'
-                  : 'Sign In'}
+              {getButtonText()}
             </Button>
           </Stack>
         </form>
