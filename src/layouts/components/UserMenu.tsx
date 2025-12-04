@@ -1,5 +1,5 @@
 // layouts/components/UserMenu.tsx
-import { Group, Text, Button, Divider } from '@mantine/core'
+import { Group, Text, Button, Divider, Box } from '@mantine/core'
 import { useUser } from '@/hooks/useApi'
 import { useStore } from '@/store/useStore'
 import { useLogout } from '@/hooks/useApi/useAuth'
@@ -14,9 +14,18 @@ export const UserMenu = () => {
 
     if (!isAuthenticated) {
         return (
-            <Button onClick={() => setSignInModalOpen(true)} variant="filled" fullWidth>
-                Sign In
-            </Button>
+            <>
+                {/* Mobile: full width */}
+                <Box hiddenFrom="md">
+                    <Button onClick={() => setSignInModalOpen(true)} variant="filled" fullWidth>
+                        Sign In
+                    </Button>
+                </Box>
+                {/* Desktop: auto width */}
+                <Button onClick={() => setSignInModalOpen(true)} variant="filled" visibleFrom="md">
+                    Sign In
+                </Button>
+            </>
         )
     }
 
