@@ -51,3 +51,10 @@ export interface GroupFormData {
   ad_group: string
   public: boolean
 }
+
+export interface Trigger {
+  rule_id: number
+  entity_key: string
+  expires: number
+  region: string
+}
