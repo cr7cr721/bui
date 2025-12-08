@@ -11,6 +11,7 @@ import { MoveToGroupModal } from './components/MoveToGroupModal'
 import { RulesTable } from './components/RulesTable'
 
 type SortField =
+  | 'id'
   | 'name'
   | 'author'
   | 'group_name'

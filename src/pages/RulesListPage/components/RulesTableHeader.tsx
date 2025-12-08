@@ -2,6 +2,7 @@ import { Table, Group, Text, Checkbox } from '@mantine/core'
 import { IconChevronUp, IconChevronDown, IconSelector } from '@tabler/icons-react'
 
 type SortField =
+  | 'id'
   | 'name'
   | 'author'
   | 'group_name'
@@ -63,6 +64,7 @@ export const RulesTableHeader = ({
             <Checkbox checked={allSelected} indeterminate={someSelected} onChange={onSelectAll} />
           </Table.Th>
         )}
+        <SortableHeader field="id" label="ID" width={80} />
         <SortableHeader field="name" label="Name" />
         <Table.Th style={{ width: 100 }}>Status</Table.Th>
         <SortableHeader field="author" label="Author" />

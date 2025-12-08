@@ -22,6 +22,11 @@ export const RulesTableRow = ({ rule, isSelected, showCheckbox, onSelect }: Rule
         </Table.Td>
       )}
       <Table.Td>
+        <Text size="sm" c="dimmed">
+          {rule.id}
+        </Text>
+      </Table.Td>
+      <Table.Td>
         <Anchor component={Link} to={`/rules/${rule.id}`} fw={500}>
           {rule.name}
         </Anchor>

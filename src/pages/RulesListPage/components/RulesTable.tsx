@@ -4,6 +4,7 @@ import { RulesTableRow } from './RulesTableRow'
 import type { Rule } from '@/types/api'
 
 type SortField =
+  | 'id'
   | 'name'
   | 'author'
   | 'group_name'
