@@ -1,12 +1,22 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { httpClient, rulesService } from '@/services'
-
-vi.mock('../http-client', () => ({ httpClient: { get: vi.fn(), post: vi.fn() } }))
+import type { Rule } from '@/types/api'
 
 describe('rulesService', () => {
-  it.skip('calls getRules', async () => {
-    httpClient.get.mockResolvedValueOnce([])
+  beforeEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('calls httpClient.get with correct args', async () => {
+    // Spy on the real httpClient instance
+    const getSpy = vi.spyOn(httpClient, 'get').mockResolvedValueOnce([] as Rule[])
+
     await rulesService.getRules('NA', 1)
-    expect(httpClient.get).toHaveBeenCalled()
+
+    expect(getSpy).toHaveBeenCalledTimes(1)
+    expect(getSpy).toHaveBeenCalledWith('/rules', {
+      regions: 'NA',
+      group: 1,
+    })
   })
 })

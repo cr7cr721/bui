@@ -1,6 +1,6 @@
 // services/rules.service.ts
-import { httpClient } from './http-client'
 import type { Rule } from '@/types/api'
+import { httpClient } from '@/services'
 
 export const rulesService = {
   getRules: (regions: string, groupId: number) =>
