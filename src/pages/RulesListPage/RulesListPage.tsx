@@ -10,15 +10,7 @@ import { DeleteConfirmationModal } from './components/DeleteConfirmationModal'
 import { MoveToGroupModal } from './components/MoveToGroupModal'
 import { RulesTable } from './components/RulesTable'
 
-type SortField =
-  | 'id'
-  | 'name'
-  | 'author'
-  | 'group_name'
-  | 'version'
-  | 'created'
-  | 'updated'
-  | 'trigger_count'
+type SortField = 'id' | 'name' | 'author' | 'group_name' | 'created' | 'updated'
 type SortDirection = 'asc' | 'desc'
 
 const SIDEBAR_WIDTH = 280
