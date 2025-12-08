@@ -1,15 +1,7 @@
 import { Table, Group, Text, Checkbox } from '@mantine/core'
 import { IconChevronUp, IconChevronDown, IconSelector } from '@tabler/icons-react'
 
-type SortField =
-  | 'id'
-  | 'name'
-  | 'author'
-  | 'group_name'
-  | 'version'
-  | 'created'
-  | 'updated'
-  | 'trigger_count'
+type SortField = 'id' | 'name' | 'author' | 'group_name' | 'created' | 'updated'
 type SortDirection = 'asc' | 'desc'
 
 interface RulesTableHeaderProps {
@@ -70,8 +62,6 @@ export const RulesTableHeader = ({
         <SortableHeader field="author" label="Author" />
         <SortableHeader field="group_name" label="Group" />
         <Table.Th>Regions</Table.Th>
-        <SortableHeader field="version" label="Ver" width={80} />
-        <SortableHeader field="trigger_count" label="Triggers" />
         <SortableHeader field="updated" label="Updated" />
       </Table.Tr>
     </Table.Thead>

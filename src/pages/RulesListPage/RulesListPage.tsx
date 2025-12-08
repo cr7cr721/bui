@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react'
-import { Stack, Loader, Center, Text, Alert } from '@mantine/core'
+import { Box, Loader, Center, Text, Alert, Flex } from '@mantine/core'
 import { IconAlertCircle, IconLock } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { useStore } from '@/store/useStore'
 import { useRules, useUser, useMoveRulesToGroup, useDeleteRules } from '@/hooks/useApi'
-import { RulesFilters } from './components/RulesFilters.tsx'
+import { FilterSidebar } from './components/FilterSidebar'
 import { BulkActionsToolbar } from './components/BulkActionsToolbar'
 import { DeleteConfirmationModal } from './components/DeleteConfirmationModal'
 import { MoveToGroupModal } from './components/MoveToGroupModal'
@@ -20,6 +20,8 @@ type SortField =
   | 'updated'
   | 'trigger_count'
 type SortDirection = 'asc' | 'desc'
+
+const SIDEBAR_WIDTH = 280
 
 export const RulesListPage = () => {
   const { filters, isAuthenticated } = useStore()
@@ -176,26 +178,25 @@ export const RulesListPage = () => {
     setTargetGroup(null)
   }
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <Stack gap="lg">
-        <RulesFilters />
-        <Center py={60}>
-          <Stack align="center" gap="md">
-            <Loader size="xl" />
-            <Text c="dimmed">Loading rules...</Text>
-          </Stack>
+  // Main content rendering
+  const renderMainContent = () => {
+    // Loading state
+    if (isLoading) {
+      return (
+        <Center py={60} style={{ flex: 1 }}>
+          <Box ta="center">
+            <Loader size="lg" />
+            <Text c="dimmed" mt="md">
+              Loading rules...
+            </Text>
+          </Box>
         </Center>
-      </Stack>
-    )
-  }
+      )
+    }
 
-  // Error state
-  if (error) {
-    return (
-      <Stack gap="lg">
-        <RulesFilters />
+    // Error state
+    if (error) {
+      return (
         <Alert
           icon={<IconAlertCircle size={16} />}
           title="Error loading rules"
@@ -204,41 +205,92 @@ export const RulesListPage = () => {
         >
           {error.message}
         </Alert>
-      </Stack>
+      )
+    }
+
+    // Main table
+    return (
+      <Box style={{ display: 'flex', flexDirection: 'column', gap: 'var(--mantine-spacing-md)' }}>
+        {userLoggedIn && (
+          <BulkActionsToolbar
+            selectedCount={selectedRuleIds.length}
+            onClearSelection={handleClearSelection}
+            onMoveToGroup={() => setMoveModalOpen(true)}
+            onDelete={() => setDeleteModalOpen(true)}
+          />
+        )}
+
+        {!userLoggedIn && (
+          <Alert
+            icon={<IconLock size={16} />}
+            title="Sign in required"
+            color="blue"
+            variant="light"
+          >
+            Sign in to select and manage rules using bulk operations.
+          </Alert>
+        )}
+
+        <RulesTable
+          rules={filteredAndSortedRules}
+          selectedRuleIds={selectedRuleIds}
+          showCheckbox={userLoggedIn}
+          sortField={sortField}
+          sortDirection={sortDirection}
+          onSelectAll={handleSelectAll}
+          onSelectRule={handleSelectRule}
+          onSort={handleSort}
+        />
+      </Box>
     )
   }
 
-  // Main render
   return (
-    <Stack gap="lg">
-      <RulesFilters />
-
-      {userLoggedIn && (
-        <BulkActionsToolbar
-          selectedCount={selectedRuleIds.length}
-          onClearSelection={handleClearSelection}
-          onMoveToGroup={() => setMoveModalOpen(true)}
-          onDelete={() => setDeleteModalOpen(true)}
+    <Box
+      style={{
+        display: 'flex',
+        gap: 'var(--mantine-spacing-lg)',
+        minHeight: 'calc(100vh - 120px)',
+      }}
+    >
+      {/* Left Sidebar */}
+      <Box
+        component="aside"
+        w={SIDEBAR_WIDTH}
+        style={{
+          flexShrink: 0,
+          position: 'sticky',
+          top: 'var(--mantine-spacing-md)',
+          alignSelf: 'flex-start',
+          maxHeight: 'calc(100vh - 120px)',
+          overflowY: 'auto',
+        }}
+        visibleFrom="md"
+      >
+        <FilterSidebar
+          totalRules={rules?.length || 0}
+          filteredRules={filteredAndSortedRules.length}
         />
-      )}
+      </Box>
 
-      {!userLoggedIn && (
-        <Alert icon={<IconLock size={16} />} title="Sign in required" color="blue" variant="light">
-          Sign in to select and manage rules using bulk operations.
-        </Alert>
-      )}
+      {/* Mobile Filters - shown above content on small screens */}
+      <Box hiddenFrom="md" w="100%">
+        <Flex direction="column" gap="lg">
+          <FilterSidebar
+            totalRules={rules?.length || 0}
+            filteredRules={filteredAndSortedRules.length}
+            mobile
+          />
+          {renderMainContent()}
+        </Flex>
+      </Box>
 
-      <RulesTable
-        rules={filteredAndSortedRules}
-        selectedRuleIds={selectedRuleIds}
-        showCheckbox={userLoggedIn}
-        sortField={sortField}
-        sortDirection={sortDirection}
-        onSelectAll={handleSelectAll}
-        onSelectRule={handleSelectRule}
-        onSort={handleSort}
-      />
+      {/* Main Content Area - Desktop */}
+      <Box style={{ flex: 1, minWidth: 0 }} visibleFrom="md">
+        {renderMainContent()}
+      </Box>
 
+      {/* Modals */}
       <DeleteConfirmationModal
         opened={deleteModalOpen}
         ruleCount={selectedRuleIds.length}
@@ -257,6 +309,6 @@ export const RulesListPage = () => {
         onGroupChange={setTargetGroup}
         onConfirm={handleMoveToGroup}
       />
-    </Stack>
+    </Box>
   )
 }

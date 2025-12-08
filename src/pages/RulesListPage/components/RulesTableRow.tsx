@@ -79,12 +79,6 @@ export const RulesTableRow = ({ rule, isSelected, showCheckbox, onSelect }: Rule
           </Group>
         </Table.Td>
         <Table.Td>
-          <Text size="sm">{rule.version}</Text>
-        </Table.Td>
-        <Table.Td>
-          <Text size="sm">{rule.trigger_count}</Text>
-        </Table.Td>
-        <Table.Td>
           <Tooltip label={new Date(rule.updated * 1000).toLocaleString()}>
             <Text size="sm" c="dimmed">
               {new Date(rule.updated * 1000).toLocaleDateString()}

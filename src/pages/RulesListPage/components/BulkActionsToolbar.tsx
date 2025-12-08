@@ -1,5 +1,5 @@
-import { Paper, Group, Text, Button } from '@mantine/core'
-import { IconX, IconFolders, IconTrash } from '@tabler/icons-react'
+import { Paper, Group, Text, Button, Badge, Transition } from '@mantine/core'
+import { IconX, IconFolders, IconTrash, IconCheckbox } from '@tabler/icons-react'
 
 interface BulkActionsToolbarProps {
   selectedCount: number
@@ -14,55 +14,73 @@ export const BulkActionsToolbar = ({
   onMoveToGroup,
   onDelete,
 }: BulkActionsToolbarProps) => {
+  const hasSelection = selectedCount > 0
+
   return (
     <Paper
-      p="md"
+      p="sm"
       withBorder
       style={{
-        backgroundColor:
-          selectedCount > 0 ? 'var(--mantine-color-blue-9)' : 'var(--mantine-color-dark-6)',
-        transition: 'background-color 0.2s',
+        backgroundColor: hasSelection
+          ? 'var(--mantine-color-blue-9)'
+          : 'var(--mantine-color-dark-7)',
+        borderColor: hasSelection ? 'var(--mantine-color-blue-7)' : 'var(--mantine-color-dark-5)',
+        transition: 'all 0.2s ease',
       }}
     >
-      <Group justify="space-between">
-        <Group>
-          {selectedCount > 0 ? (
-            <>
-              <Text fw={500}>
-                {selectedCount} rule{selectedCount !== 1 ? 's' : ''} selected
-              </Text>
-              <Button
-                variant="subtle"
-                size="xs"
-                onClick={onClearSelection}
-                leftSection={<IconX size={14} />}
-              >
-                Clear Selection
-              </Button>
-            </>
-          ) : (
+      <Group justify="space-between" wrap="nowrap">
+        <Group gap="sm" wrap="nowrap">
+          <Transition mounted={hasSelection} transition="slide-right" duration={200}>
+            {(styles) => (
+              <Group gap="xs" style={styles}>
+                <IconCheckbox size={18} />
+                <Badge variant="light" color="blue" size="lg">
+                  {selectedCount}
+                </Badge>
+                <Text size="sm" fw={500}>
+                  rule{selectedCount !== 1 ? 's' : ''} selected
+                </Text>
+                <Button
+                  variant="subtle"
+                  size="xs"
+                  color="blue.3"
+                  onClick={onClearSelection}
+                  leftSection={<IconX size={14} />}
+                  styles={{
+                    root: { paddingLeft: 8, paddingRight: 10 },
+                  }}
+                >
+                  Clear
+                </Button>
+              </Group>
+            )}
+          </Transition>
+
+          {!hasSelection && (
             <Text c="dimmed" size="sm">
               Select rules to perform bulk actions
             </Text>
           )}
         </Group>
 
-        <Group>
+        <Group gap="xs" wrap="nowrap">
           <Button
-            variant="light"
+            variant={hasSelection ? 'light' : 'subtle'}
             color="blue"
+            size="sm"
             leftSection={<IconFolders size={16} />}
             onClick={onMoveToGroup}
-            disabled={selectedCount === 0}
+            disabled={!hasSelection}
           >
-            Move to Group
+            Move
           </Button>
           <Button
-            variant="light"
+            variant={hasSelection ? 'light' : 'subtle'}
             color="red"
+            size="sm"
             leftSection={<IconTrash size={16} />}
             onClick={onDelete}
-            disabled={selectedCount === 0}
+            disabled={!hasSelection}
           >
             Delete
           </Button>
