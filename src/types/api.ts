@@ -44,6 +44,7 @@ export interface RuleFilters {
   group: string
   search: string
   enabled: 'all' | 'enabled' | 'disabled'
+  author: string
 }
 
 export interface GroupFormData {

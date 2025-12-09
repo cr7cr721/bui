@@ -13,7 +13,7 @@ import { RulesTable } from './components/RulesTable'
 type SortField = 'id' | 'name' | 'author' | 'group_name' | 'created' | 'updated'
 type SortDirection = 'asc' | 'desc'
 
-const SIDEBAR_WIDTH = 280
+const SIDEBAR_WIDTH = 300
 
 export const RulesListPage = () => {
   const { filters, isAuthenticated } = useStore()
@@ -39,14 +39,16 @@ export const RulesListPage = () => {
         const matchesSearch =
           !filters.search ||
           rule.name.toLowerCase().includes(filters.search.toLowerCase()) ||
-          rule.author.toLowerCase().includes(filters.search.toLowerCase())
+          rule.id.toString().includes(filters.search)
 
         const matchesEnabled =
           filters.enabled === 'all' ||
           (filters.enabled === 'enabled' && rule.enabled === 1) ||
           (filters.enabled === 'disabled' && rule.enabled === 0)
 
-        return matchesSearch && matchesEnabled
+        const matchesAuthor = !filters.author || rule.author === filters.author
+
+        return matchesSearch && matchesEnabled && matchesAuthor
       }) || []
 
     return [...filtered].sort((a, b) => {

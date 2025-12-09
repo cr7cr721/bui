@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import {
   Paper,
   Stack,
@@ -9,23 +10,13 @@ import {
   Group,
   Badge,
   Box,
-  ThemeIcon,
-  Collapse,
+  SegmentedControl,
+  ActionIcon,
+  Tooltip,
 } from '@mantine/core'
-import { useDisclosure } from '@mantine/hooks'
-import {
-  IconSearch,
-  IconFilter,
-  IconFilterOff,
-  IconWorld,
-  IconUsers,
-  IconToggleLeft,
-  IconChevronDown,
-  IconChevronRight,
-  IconList,
-} from '@tabler/icons-react'
+import { IconSearch, IconX, IconRefresh } from '@tabler/icons-react'
 import { useStore } from '@/store/useStore'
-import { useUser, useRegions } from '@/hooks/useApi'
+import { useUser, useRegions, useAuthors } from '@/hooks/useApi'
 
 interface FilterSidebarProps {
   totalRules: number
@@ -37,10 +28,19 @@ export const FilterSidebar = ({ totalRules, filteredRules, mobile }: FilterSideb
   const { filters, setFilters, resetFilters } = useStore()
   const { data: user } = useUser()
   const { data: regions } = useRegions()
-  const [filtersOpen, { toggle: toggleFilters }] = useDisclosure(true)
+  const { data: authors } = useAuthors(parseInt(filters.group) || 0)
 
-  const hasActiveFilters = filters.search || filters.enabled !== 'all'
+  const hasActiveFilters = filters.search || filters.enabled !== 'all' || filters.author
   const isFiltered = filteredRules !== totalRules
+
+  // Get unique authors for the dropdown
+  const authorOptions = useMemo(() => {
+    if (!authors) return []
+    return authors.map((author) => ({
+      value: author,
+      label: author,
+    }))
+  }, [authors])
 
   const handleFilterChange = (key: string, value: string | null) => {
     setFilters({ [key]: value || '' })
@@ -50,205 +50,287 @@ export const FilterSidebar = ({ totalRules, filteredRules, mobile }: FilterSideb
     resetFilters()
   }
 
+  const currentGroup = user?.groups?.find((g) => g.id.toString() === filters.group)
+
   const sidebarContent = (
-    <Stack gap="md">
-      {/* Header with stats */}
-      <Box>
-        <Group justify="space-between" mb="xs">
-          <Group gap="xs">
-            <ThemeIcon size="sm" variant="light" color="blue">
-              <IconList size={14} />
-            </ThemeIcon>
-            <Text size="sm" fw={600}>
-              Rules
-            </Text>
-          </Group>
-          <Badge variant="light" color={isFiltered ? 'blue' : 'gray'} size="sm">
-            {filteredRules} / {totalRules}
+    <Stack gap="lg">
+      {/* Header */}
+      <Group justify="space-between" align="center">
+        <Group gap="xs">
+          <Text size="lg" fw={600}>
+            Rules
+          </Text>
+          <Badge
+            variant={isFiltered ? 'filled' : 'light'}
+            color={isFiltered ? 'blue' : 'gray'}
+            size="lg"
+            radius="sm"
+          >
+            {filteredRules}
           </Badge>
         </Group>
-        {isFiltered && (
-          <Text size="xs" c="dimmed">
-            Showing {filteredRules} of {totalRules} rules
+        {hasActiveFilters && (
+          <Tooltip label="Reset filters">
+            <ActionIcon variant="subtle" color="gray" onClick={handleReset}>
+              <IconRefresh size={16} />
+            </ActionIcon>
+          </Tooltip>
+        )}
+      </Group>
+
+      <Divider />
+
+      {/* Group Selector - Primary filter */}
+      <Box>
+        <Text size="xs" fw={600} c="dimmed" mb={8} tt="uppercase" lts={0.5}>
+          Group
+        </Text>
+        <Select
+          placeholder="Select group"
+          size="sm"
+          data={
+            user?.groups?.map((group) => ({
+              value: group.id.toString(),
+              label: group.fullname,
+            })) || []
+          }
+          value={filters.group}
+          onChange={(value) => handleFilterChange('group', value)}
+          comboboxProps={{ withinPortal: true }}
+          searchable
+          nothingFoundMessage="No groups found"
+          styles={{
+            input: {
+              backgroundColor: 'var(--mantine-color-dark-6)',
+              borderColor: 'var(--mantine-color-dark-4)',
+              fontWeight: 500,
+            },
+          }}
+        />
+        {currentGroup && (
+          <Text size="xs" c="dimmed" mt={4}>
+            {currentGroup.write ? '✓ You can edit rules in this group' : 'Read-only access'}
           </Text>
         )}
       </Box>
 
-      <Divider />
-
-      {/* Collapsible Filters Section */}
+      {/* Search */}
       <Box>
-        <Button
-          variant="subtle"
-          color="gray"
-          fullWidth
-          justify="space-between"
+        <Text size="xs" fw={600} c="dimmed" mb={8} tt="uppercase" lts={0.5}>
+          Search
+        </Text>
+        <TextInput
+          placeholder="Name or ID..."
+          size="sm"
+          leftSection={<IconSearch size={14} />}
+          value={filters.search}
+          onChange={(e) => handleFilterChange('search', e.currentTarget.value)}
           rightSection={
-            filtersOpen ? <IconChevronDown size={16} /> : <IconChevronRight size={16} />
-          }
-          leftSection={<IconFilter size={16} />}
-          onClick={toggleFilters}
-          styles={{
-            root: { paddingLeft: 0, paddingRight: 0 },
-            inner: { justifyContent: 'space-between' },
-          }}
-        >
-          <Group gap="xs">
-            <Text size="sm" fw={500}>
-              Filters
-            </Text>
-            {hasActiveFilters && (
-              <Badge size="xs" color="blue" variant="filled">
-                Active
-              </Badge>
-            )}
-          </Group>
-        </Button>
-
-        <Collapse in={filtersOpen}>
-          <Stack gap="md" mt="md">
-            {/* Region Filter */}
-            <Box>
-              <Group gap="xs" mb={6}>
-                <IconWorld size={14} style={{ color: 'var(--mantine-color-dimmed)' }} />
-                <Text size="xs" fw={500} c="dimmed" tt="uppercase">
-                  Region
-                </Text>
-              </Group>
-              <Select
-                placeholder="Select region"
+            filters.search ? (
+              <ActionIcon
                 size="sm"
-                data={
-                  regions?.map((region) => ({
-                    value: region.name,
-                    label: `${region.name} - ${region.description}`,
-                  })) || []
-                }
-                value={filters.region}
-                onChange={(value) => handleFilterChange('region', value)}
-                comboboxProps={{ withinPortal: true }}
-              />
-            </Box>
-
-            {/* Group Filter */}
-            <Box>
-              <Group gap="xs" mb={6}>
-                <IconUsers size={14} style={{ color: 'var(--mantine-color-dimmed)' }} />
-                <Text size="xs" fw={500} c="dimmed" tt="uppercase">
-                  Group
-                </Text>
-              </Group>
-              <Select
-                placeholder="Select group"
-                size="sm"
-                data={
-                  user?.groups?.map((group) => ({
-                    value: group.id.toString(),
-                    label: group.fullname,
-                  })) || []
-                }
-                value={filters.group}
-                onChange={(value) => handleFilterChange('group', value)}
-                comboboxProps={{ withinPortal: true }}
-                searchable
-                nothingFoundMessage="No groups found"
-              />
-            </Box>
-
-            {/* Status Filter */}
-            <Box>
-              <Group gap="xs" mb={6}>
-                <IconToggleLeft size={14} style={{ color: 'var(--mantine-color-dimmed)' }} />
-                <Text size="xs" fw={500} c="dimmed" tt="uppercase">
-                  Status
-                </Text>
-              </Group>
-              <Select
-                placeholder="Select status"
-                size="sm"
-                data={[
-                  { value: 'all', label: 'All Rules' },
-                  { value: 'enabled', label: 'Enabled Only' },
-                  { value: 'disabled', label: 'Disabled Only' },
-                ]}
-                value={filters.enabled}
-                onChange={(value) => handleFilterChange('enabled', value)}
-                comboboxProps={{ withinPortal: true }}
-              />
-            </Box>
-
-            {/* Search */}
-            <Box>
-              <Group gap="xs" mb={6}>
-                <IconSearch size={14} style={{ color: 'var(--mantine-color-dimmed)' }} />
-                <Text size="xs" fw={500} c="dimmed" tt="uppercase">
-                  Search
-                </Text>
-              </Group>
-              <TextInput
-                placeholder="Search by name or author..."
-                size="sm"
-                value={filters.search}
-                onChange={(e) => handleFilterChange('search', e.currentTarget.value)}
-                rightSection={
-                  filters.search && (
-                    <IconFilterOff
-                      size={14}
-                      style={{ cursor: 'pointer', opacity: 0.5 }}
-                      onClick={() => handleFilterChange('search', '')}
-                    />
-                  )
-                }
-              />
-            </Box>
-
-            {/* Reset Button */}
-            {hasActiveFilters && (
-              <Button
-                variant="light"
+                variant="subtle"
                 color="gray"
-                size="sm"
-                leftSection={<IconFilterOff size={14} />}
-                onClick={handleReset}
-                fullWidth
+                onClick={() => handleFilterChange('search', '')}
               >
-                Clear All Filters
-              </Button>
-            )}
-          </Stack>
-        </Collapse>
+                <IconX size={12} />
+              </ActionIcon>
+            ) : null
+          }
+          styles={{
+            input: {
+              backgroundColor: 'var(--mantine-color-dark-6)',
+              borderColor: 'var(--mantine-color-dark-4)',
+            },
+          }}
+        />
       </Box>
 
-      <Divider />
-
-      {/* Quick Stats */}
+      {/* Author Filter */}
       <Box>
-        <Text size="xs" fw={500} c="dimmed" tt="uppercase" mb="sm">
-          Quick Info
+        <Text size="xs" fw={600} c="dimmed" mb={8} tt="uppercase" lts={0.5}>
+          Author
         </Text>
-        <Stack gap="xs">
-          <Group justify="space-between">
-            <Text size="sm" c="dimmed">
-              Region
-            </Text>
-            <Badge variant="outline" size="sm">
-              {filters.region}
-            </Badge>
-          </Group>
-          <Group justify="space-between">
-            <Text size="sm" c="dimmed">
-              Group
-            </Text>
-            <Badge variant="outline" size="sm">
-              {user?.groups?.find((g) => g.id.toString() === filters.group)?.fullname || 'N/A'}
-            </Badge>
-          </Group>
+        <Select
+          placeholder="All authors"
+          size="sm"
+          data={authorOptions}
+          value={filters.author || null}
+          onChange={(value) => handleFilterChange('author', value)}
+          comboboxProps={{ withinPortal: true }}
+          searchable
+          clearable
+          nothingFoundMessage="No authors found"
+          styles={{
+            input: {
+              backgroundColor: 'var(--mantine-color-dark-6)',
+              borderColor: 'var(--mantine-color-dark-4)',
+            },
+          }}
+        />
+      </Box>
+
+      {/* Region - Radio buttons */}
+      <Box>
+        <Text size="xs" fw={600} c="dimmed" mb={8} tt="uppercase" lts={0.5}>
+          Region
+        </Text>
+        <Stack gap={4}>
+          {regions?.map((region) => (
+            <Box
+              key={region.name}
+              p="xs"
+              style={{
+                borderRadius: 'var(--mantine-radius-sm)',
+                backgroundColor:
+                  filters.region === region.name ? 'var(--mantine-color-blue-9)' : 'transparent',
+                cursor: 'pointer',
+                transition: 'background-color 0.15s ease',
+              }}
+              onClick={() => handleFilterChange('region', region.name)}
+            >
+              <Group gap="xs" wrap="nowrap">
+                <Box
+                  style={{
+                    width: 16,
+                    height: 16,
+                    borderRadius: '50%',
+                    border: `2px solid ${
+                      filters.region === region.name
+                        ? 'var(--mantine-color-blue-5)'
+                        : 'var(--mantine-color-dark-4)'
+                    }`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  {filters.region === region.name && (
+                    <Box
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        backgroundColor: 'var(--mantine-color-blue-5)',
+                      }}
+                    />
+                  )}
+                </Box>
+                <Text size="sm" fw={filters.region === region.name ? 500 : 400}>
+                  {region.name}
+                </Text>
+              </Group>
+            </Box>
+          ))}
         </Stack>
       </Box>
+
+      {/* Status - Segmented Control */}
+      <Box>
+        <Text size="xs" fw={600} c="dimmed" mb={8} tt="uppercase" lts={0.5}>
+          Status
+        </Text>
+        <SegmentedControl
+          fullWidth
+          size="xs"
+          value={filters.enabled}
+          onChange={(value) => handleFilterChange('enabled', value)}
+          data={[
+            { label: 'All', value: 'all' },
+            { label: 'Enabled', value: 'enabled' },
+            { label: 'Disabled', value: 'disabled' },
+          ]}
+          styles={{
+            root: {
+              backgroundColor: 'var(--mantine-color-dark-6)',
+            },
+          }}
+        />
+      </Box>
+
+      {/* Active Filters Summary */}
+      {hasActiveFilters && (
+        <>
+          <Divider />
+          <Box>
+            <Group justify="space-between" mb="xs">
+              <Text size="xs" fw={600} c="dimmed" tt="uppercase" lts={0.5}>
+                Active Filters
+              </Text>
+              <Button variant="subtle" color="gray" size="compact-xs" onClick={handleReset}>
+                Clear all
+              </Button>
+            </Group>
+            <Group gap={6}>
+              {filters.search && (
+                <Badge
+                  variant="light"
+                  color="blue"
+                  size="sm"
+                  rightSection={
+                    <ActionIcon
+                      size="xs"
+                      variant="transparent"
+                      color="blue"
+                      onClick={() => handleFilterChange('search', '')}
+                    >
+                      <IconX size={10} />
+                    </ActionIcon>
+                  }
+                  styles={{ root: { paddingRight: 4 } }}
+                >
+                  "{filters.search}"
+                </Badge>
+              )}
+              {filters.enabled !== 'all' && (
+                <Badge
+                  variant="light"
+                  color={filters.enabled === 'enabled' ? 'green' : 'red'}
+                  size="sm"
+                  rightSection={
+                    <ActionIcon
+                      size="xs"
+                      variant="transparent"
+                      color={filters.enabled === 'enabled' ? 'green' : 'red'}
+                      onClick={() => handleFilterChange('enabled', 'all')}
+                    >
+                      <IconX size={10} />
+                    </ActionIcon>
+                  }
+                  styles={{ root: { paddingRight: 4 } }}
+                >
+                  {filters.enabled}
+                </Badge>
+              )}
+              {filters.author && (
+                <Badge
+                  variant="light"
+                  color="violet"
+                  size="sm"
+                  rightSection={
+                    <ActionIcon
+                      size="xs"
+                      variant="transparent"
+                      color="violet"
+                      onClick={() => handleFilterChange('author', '')}
+                    >
+                      <IconX size={10} />
+                    </ActionIcon>
+                  }
+                  styles={{ root: { paddingRight: 4 } }}
+                >
+                  {filters.author.split('@')[0]}
+                </Badge>
+              )}
+            </Group>
+          </Box>
+        </>
+      )}
     </Stack>
   )
 
-  // Mobile: render as a collapsible card
+  // Mobile: render as a card
   if (mobile) {
     return (
       <Paper shadow="sm" p="md" withBorder>
@@ -261,7 +343,7 @@ export const FilterSidebar = ({ totalRules, filteredRules, mobile }: FilterSideb
   return (
     <Paper
       shadow="sm"
-      p="md"
+      p="lg"
       withBorder
       style={{
         backgroundColor: 'var(--mantine-color-dark-7)',

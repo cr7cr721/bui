@@ -30,6 +30,7 @@ const defaultFilters: RuleFilters = {
   group: '1',
   search: '',
   enabled: 'all',
+  author: '',
 }
 
 export const useStore = create<AppState>()(
