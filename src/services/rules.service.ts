@@ -1,6 +1,6 @@
 // services/rules.service.ts
-import type { Rule } from '@/types/api'
 import { httpClient } from '@/services'
+import type { Rule, RuleTrigger } from '@/types/api'
 
 export const rulesService = {
   getRules: (regions: string, groupId: number) =>
@@ -8,6 +8,9 @@ export const rulesService = {
 
   getAuthors: (groupId: number) =>
     httpClient.get<string[]>('/rules/values/author', { group: groupId }),
+
+  getTriggers: (ruleId: number) =>
+    httpClient.get<RuleTrigger[]>(`/rules/${ruleId}/triggers`),
 
   moveToGroup: (ruleId: number, groupId: number) =>
     httpClient.post<void>(`/rules/${ruleId}/setgroup`, undefined, { group: groupId }),

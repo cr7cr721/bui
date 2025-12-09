@@ -52,7 +52,7 @@ export interface GroupFormData {
   public: boolean
 }
 
-export interface Trigger {
+export interface RuleTrigger {
   rule_id: number
   entity_key: string
   expires: number
