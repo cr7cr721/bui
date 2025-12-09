@@ -11,8 +11,12 @@ export const MainLayout = () => {
 
   return (
     <>
-      <AppShell header={{ height: 70 }} padding="md">
-        <AppShell.Header>
+      <AppShell header={{ height: 64 }} padding="md">
+        <AppShell.Header
+          style={{
+            border: 'none',
+          }}
+        >
           <Header />
         </AppShell.Header>
 
