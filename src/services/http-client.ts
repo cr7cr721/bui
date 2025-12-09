@@ -72,8 +72,13 @@ class HttpClient {
     return res.data
   }
 
-  async post<T>(url: string, data?: unknown, params?: Record<string, unknown>): Promise<T> {
-    const res = await this.instance.post<T>(url, data, { params })
+  async post<T>(
+    url: string,
+    data?: unknown,
+    params?: Record<string, unknown>,
+    headers?: Record<string, string>
+  ): Promise<T> {
+    const res = await this.instance.post<T>(url, data, { params, headers })
     return res.data
   }
 
