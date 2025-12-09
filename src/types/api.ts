@@ -1,10 +1,6 @@
-export interface Group {
-  id: number
-  fullname: string
-  ad_group: string
-  write: boolean
-  public: boolean
-}
+// =============================================================================
+// User & Auth
+// =============================================================================
 
 export interface User {
   username: string
@@ -17,34 +13,12 @@ export interface User {
   groups: Group[]
 }
 
-export interface Region {
-  name: string
-  description: string
-}
-
-export interface Rule {
+export interface Group {
   id: number
-  group_id: number
-  group_name: string
-  name: string
-  author: string
-  regions: string[]
-  created: number
-  updated: number
-  enabled: number
-  version: number
-  trigger_count: number
-  wake_time: string | null
-  enabledIn: string[]
-  unknownIn: string[]
-}
-
-export interface RuleFilters {
-  region: string
-  group: string
-  search: string
-  enabled: 'all' | 'enabled' | 'disabled'
-  author: string
+  fullname: string
+  ad_group: string
+  write: boolean
+  public: boolean
 }
 
 export interface GroupFormData {
@@ -53,9 +27,47 @@ export interface GroupFormData {
   public: boolean
 }
 
+// =============================================================================
+// Rules
+// =============================================================================
+
+export interface Rule {
+  id: number
+  name: string
+  author: string
+  group_id: number
+  group_name: string
+  regions: string[]
+  enabled: number
+  version: number
+  trigger_count: number
+  wake_time: string | null
+  enabledIn: string[]
+  unknownIn: string[]
+  created: number
+  updated: number
+}
+
 export interface RuleTrigger {
   rule_id: number
   entity_key: string
-  expires: number
   region: string
+  expires: number
+}
+
+export interface RuleFilters {
+  region: string
+  group: string
+  author: string
+  search: string
+  enabled: 'all' | 'enabled' | 'disabled'
+}
+
+// =============================================================================
+// Regions
+// =============================================================================
+
+export interface Region {
+  name: string
+  description: string
 }

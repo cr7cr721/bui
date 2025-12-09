@@ -3,7 +3,7 @@
 export { useUser, useVersion, useLogin, useLogout } from './useAuth'
 
 // Rules hooks
-export { useRules, useAuthors, useMoveRulesToGroup, useDeleteRules } from './useRules'
+export { useRules, useAuthors, useTriggers, useMoveRulesToGroup, useDeleteRules } from './useRules'
 
 // Groups hooks
 export { useCreateGroup, useUpdateGroup } from './useGroups'

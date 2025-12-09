@@ -20,6 +20,15 @@ export const useAuthors = (groupId: number) => {
   })
 }
 
+export const useTriggers = (ruleId: number, enabled = true) => {
+  return useQuery({
+    queryKey: ['triggers', ruleId],
+    queryFn: () => rulesService.getTriggers(ruleId),
+    enabled: !!ruleId && enabled,
+    staleTime: 1000 * 30, // 30 seconds - triggers change frequently
+  })
+}
+
 export const useMoveRulesToGroup = () => {
   const queryClient = useQueryClient()
 

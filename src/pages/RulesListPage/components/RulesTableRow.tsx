@@ -92,7 +92,6 @@ export const RulesTableRow = ({ rule, isSelected, showCheckbox, onSelect }: Rule
         onClose={() => setTriggersModalOpen(false)}
         ruleName={rule.name}
         ruleId={rule.id}
-        triggerCount={rule.trigger_count}
       />
     </>
   )

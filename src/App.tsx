@@ -6,9 +6,9 @@ import { RulesListPage } from './pages/RulesListPage/RulesListPage'
 import { RuleDetailPage } from './pages/RuleDetailPage/RuleDetailPage'
 import { AdminPage } from './pages/AdminPage/AdminPage'
 import { useStore } from './store/useStore'
-import { setAuthHelpers } from './services/api'
 import CreateRulePage from './pages/CreateRulePage/CreateRulePage.tsx'
 import { GroupsPage } from '@/pages/GroupsPage/GroupsPage.tsx'
+import { setAuthHelpers } from '@/services'
 
 // Create a client
 const queryClient = new QueryClient({
