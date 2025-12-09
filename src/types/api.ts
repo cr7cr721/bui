@@ -48,6 +48,12 @@ export interface Rule {
   updated: number
 }
 
+export interface RuleResponse {
+  id: number
+  version: number
+  body: CreateRulePayload
+}
+
 export interface RuleTrigger {
   rule_id: number
   entity_key: string
@@ -61,6 +67,96 @@ export interface RuleFilters {
   author: string
   search: string
   enabled: 'all' | 'enabled' | 'disabled'
+}
+
+// =============================================================================
+// Rule Creation / Editing
+// =============================================================================
+
+export interface CreateRulePayload {
+  name: string
+  author: string
+  regions: string[]
+  schedule?: {
+    interval?: string
+    cron?: string
+  }
+  parameters?: Record<string, unknown>
+  inputs: RuleInput[]
+  transform?: string
+  condition?: string
+  actions: RuleAction[]
+}
+
+// Input types
+export type RuleInput =
+  | { search: SearchQuery; index?: string }
+  | { request: HttpRequest }
+  | { static: Record<string, unknown> }
+  | { metric: MetricQuery }
+
+export interface SearchQuery {
+  size?: number
+  query: Record<string, unknown>
+  aggs?: Record<string, unknown>
+}
+
+export interface HttpRequest {
+  url: string
+  method: 'GET' | 'POST' | 'PUT'
+  json?: boolean
+  body?: string | Record<string, unknown>
+}
+
+export interface MetricQuery {
+  start_relative: {
+    value: string
+    unit: 'seconds' | 'minutes' | 'hours' | 'days' | 'weeks' | 'months' | 'years'
+  }
+  metrics: Array<{
+    name: string
+    tags?: Record<string, string[]>
+    group_by?: Array<{ name: string; tags: string[] }>
+    aggregators?: Array<{
+      name: string
+      sampling?: { value: number; unit: string }
+    }>
+  }>
+}
+
+// Action types
+export type RuleAction =
+  | { email: EmailAction; throttle?: ThrottleConfig }
+  | { 'telemetry-alert': TelemetryAlertAction; throttle?: ThrottleConfig }
+  | { 'toggle-watch': ToggleWatchAction; throttle?: ThrottleConfig }
+  | { request: HttpRequest; throttle?: ThrottleConfig }
+
+export interface EmailAction {
+  to: string
+  bcc?: string
+  subject: string
+  body: string
+  format: 'text' | 'html' | 'markdown'
+  templateType: 'text' | 'handlebars'
+}
+
+export interface TelemetryAlertAction {
+  summary: string
+  description: string
+  severity: 1 | 2 | 3 | 4 | 5
+  condition_id?: string
+  qualifier?: string
+  format?: 'text' | 'handlebars'
+}
+
+export interface ToggleWatchAction {
+  id: string | number
+  enable: boolean
+}
+
+export interface ThrottleConfig {
+  key?: string
+  duration?: string
 }
 
 // =============================================================================
