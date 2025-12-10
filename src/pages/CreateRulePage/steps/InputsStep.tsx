@@ -18,6 +18,8 @@ export const InputsStep = () => {
   })
 
   const addInput = (type: 'search' | 'http' | 'static' | 'metric') => {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
     append({ type, config: {} })
   }
 

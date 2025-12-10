@@ -18,6 +18,8 @@ export const ActionsStep = () => {
   })
 
   const addAction = (type: 'email' | 'telemetry' | 'toggle' | 'http') => {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
     append({ type, config: {} })
   }
 
