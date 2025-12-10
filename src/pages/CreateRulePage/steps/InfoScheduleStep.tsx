@@ -7,9 +7,11 @@ export const InfoScheduleStep = () => {
   const {
     register,
     control,
+    watch,
     formState: { errors },
   } = useFormContext<RuleFormData>()
   const { data: regions } = useRegions()
+  const scheduleType = watch('scheduleType')
 
   return (
     <Stack gap="lg" mt="xl">
@@ -39,7 +41,7 @@ export const InfoScheduleStep = () => {
         <Text size="sm" fw={500} mb="xs">
           Regions *
         </Text>
-        <Stack gap="xs">
+        <Group gap="lg">
           {regions?.map((region) => (
             <Controller
               key={region.name}
@@ -48,7 +50,7 @@ export const InfoScheduleStep = () => {
               rules={{ required: 'Select at least one region' }}
               render={({ field }) => (
                 <Checkbox
-                  label={`${region.name} - ${region.description}`}
+                  label={region.name}
                   checked={field.value?.includes(region.name)}
                   onChange={(event) => {
                     const checked = event.currentTarget.checked
@@ -61,7 +63,7 @@ export const InfoScheduleStep = () => {
               )}
             />
           ))}
-        </Stack>
+        </Group>
         {errors.regions && (
           <Text size="sm" c="red" mt="xs">
             {errors.regions.message}
@@ -86,6 +88,26 @@ export const InfoScheduleStep = () => {
             </Radio.Group>
           )}
         />
+
+        {(scheduleType === 'interval' || scheduleType === 'cron') && (
+          <TextInput
+            mt="md"
+            label={scheduleType === 'interval' ? 'Interval (e.g., 5m, 1h)' : 'Cron Expression'}
+            placeholder={scheduleType === 'interval' ? '5m' : '0 */5 * * * *'}
+            description={
+              scheduleType === 'interval'
+                ? 'Duration format: 30s, 5m, 1h, etc.'
+                : 'Standard cron expression (6 fields: second minute hour day month weekday)'
+            }
+            {...register('scheduleValue', {
+              required:
+                scheduleType === 'interval' || scheduleType === 'cron'
+                  ? 'Schedule value is required'
+                  : false,
+            })}
+            error={errors.scheduleValue?.message}
+          />
+        )}
       </div>
     </Stack>
   )
