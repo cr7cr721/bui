@@ -19,7 +19,7 @@ import type {
 /**
  * Transform RuleFormData from the form to CreateRulePayload for the API
  */
-export function transformFormToPayload(formData: RuleFormData): CreateRulePayload {
+export const transformFormToPayload = (formData: RuleFormData): CreateRulePayload => {
   const payload: CreateRulePayload = {
     name: formData.name,
     author: formData.authorEmail,
@@ -71,7 +71,7 @@ export function transformFormToPayload(formData: RuleFormData): CreateRulePayloa
 /**
  * Transform a single input from form data to API format
  */
-function transformInput(input: InputFormData): RuleInput {
+const transformInput = (input: InputFormData): RuleInput => {
   switch (input.type) {
     case 'search':
       return transformSearchInput(input)
@@ -86,7 +86,7 @@ function transformInput(input: InputFormData): RuleInput {
   }
 }
 
-function transformSearchInput(input: SearchInputFormData): RuleInput {
+const transformSearchInput = (input: SearchInputFormData): RuleInput => {
   const result: RuleInput = {
     search: JSON.parse(input.searchBody || '{}'),
   }
@@ -96,7 +96,7 @@ function transformSearchInput(input: SearchInputFormData): RuleInput {
   return result
 }
 
-function transformHttpInput(input: HttpInputFormData): RuleInput {
+const transformHttpInput = (input: HttpInputFormData): RuleInput => {
   const request: { url: string; method: string; json?: boolean; body?: unknown } = {
     url: input.url,
     method: input.method,
@@ -121,13 +121,11 @@ function transformHttpInput(input: HttpInputFormData): RuleInput {
   return { request } as RuleInput
 }
 
-function transformStaticInput(input: StaticInputFormData): RuleInput {
-  return {
-    static: JSON.parse(input.json || '{}'),
-  }
-}
+const transformStaticInput = (input: StaticInputFormData): RuleInput => ({
+  static: JSON.parse(input.json || '{}'),
+})
 
-function transformMetricInput(input: MetricInputFormData): RuleInput {
+const transformMetricInput = (input: MetricInputFormData): RuleInput => {
   const metric = {
     start_relative: {
       value: input.startValue,
@@ -151,7 +149,7 @@ function transformMetricInput(input: MetricInputFormData): RuleInput {
 /**
  * Transform a single action from form data to API format
  */
-function transformAction(action: ActionFormData): RuleAction {
+const transformAction = (action: ActionFormData): RuleAction => {
   switch (action.type) {
     case 'email':
       return transformEmailAction(action)
@@ -166,7 +164,7 @@ function transformAction(action: ActionFormData): RuleAction {
   }
 }
 
-function transformEmailAction(action: EmailActionFormData): RuleAction {
+const transformEmailAction = (action: EmailActionFormData): RuleAction => {
   const result: RuleAction = {
     email: {
       to: action.to,
@@ -187,7 +185,7 @@ function transformEmailAction(action: EmailActionFormData): RuleAction {
   return result
 }
 
-function transformTelemetryAction(action: TelemetryActionFormData): RuleAction {
+const transformTelemetryAction = (action: TelemetryActionFormData): RuleAction => {
   const result: RuleAction = {
     'telemetry-alert': {
       summary: action.summary,
@@ -208,7 +206,7 @@ function transformTelemetryAction(action: TelemetryActionFormData): RuleAction {
   return result
 }
 
-function transformToggleAction(action: ToggleActionFormData): RuleAction {
+const transformToggleAction = (action: ToggleActionFormData): RuleAction => {
   const result: RuleAction = {
     'toggle-watch': {
       id: action.ruleId === '0' ? 0 : action.ruleId,
@@ -225,7 +223,7 @@ function transformToggleAction(action: ToggleActionFormData): RuleAction {
   return result
 }
 
-function transformHttpAction(action: HttpActionFormData): RuleAction {
+const transformHttpAction = (action: HttpActionFormData): RuleAction => {
   const request: { url: string; method: string; json?: boolean; body?: unknown } = {
     url: action.url,
     method: action.method,
