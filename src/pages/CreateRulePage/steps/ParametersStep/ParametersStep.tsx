@@ -49,10 +49,7 @@ export const ParametersStep = () => {
         </Tabs.Panel>
 
         <Tabs.Panel value="json" pt="md">
-          <Code block>
-            {/* TODO: Add Monaco JSON editor here */}
-            JSON Editor coming soon...
-          </Code>
+          <Code block>JSON Editor coming soon...</Code>
         </Tabs.Panel>
       </Tabs>
     </Stack>

@@ -97,7 +97,7 @@ export const InfoScheduleStep = () => {
             description={
               scheduleType === 'interval'
                 ? 'Duration format: 30s, 5m, 1h, etc.'
-                : 'Standard cron expression (6 fields: second minute hour day month weekday)'
+                : 'Standard cron expression (6 fields)'
             }
             {...register('scheduleValue', {
               required:

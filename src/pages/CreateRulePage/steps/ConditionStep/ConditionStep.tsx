@@ -7,18 +7,6 @@ import type { RuleFormData } from '@/types/rule'
 export const ConditionStep = () => {
   const { control } = useFormContext<RuleFormData>()
 
-  //     const defaultCode = `// Condition function
-  // // Must return true or false
-  // function condition(transformed, parameters, context) {
-  //   //  condition logic here
-  //
-  //   // Example:
-  //   // return transformed.value > parameters.threshold;
-  //
-  //   return false;
-  // }
-  // `
-
   return (
     <Stack gap="lg" mt="xl">
       <Paper withBorder p="md" bg="dark.7">
