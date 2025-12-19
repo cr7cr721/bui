@@ -32,8 +32,7 @@ jobs:
         run: yarn tsc --noEmit
 
       - name: Run tests
-        run: yarn test --passWithNoTests
-        continue-on-error: true
+        run: yarn test --run
 
       - name: Build application
         run: yarn build
