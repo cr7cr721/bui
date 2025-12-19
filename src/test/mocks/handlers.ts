@@ -1,5 +1,14 @@
 import { http, HttpResponse, delay } from 'msw'
-import { testUser, testRules, testRegions, createRuleTriggers, createRule } from './factories'
+import {
+  testUser,
+  testAdminUser,
+  testRules,
+  testRegions,
+  testChromieRegions,
+  testDisabledRegions,
+  createRuleTriggers,
+  createRule,
+} from '@/test'
 
 const BASE = 'https://gdp-beam-api.dev.data.blz.dev'
 
@@ -136,6 +145,27 @@ export const handlers = [
     await delay(50)
     return HttpResponse.json({})
   }),
+
+  // Chromie Regions (Admin)
+  http.get(`${BASE}/chromie/regions`, async () => {
+    await delay(50)
+    return HttpResponse.json(testChromieRegions)
+  }),
+
+  http.get(`${BASE}/chromie/regions/disabled`, async () => {
+    await delay(50)
+    return HttpResponse.json(testDisabledRegions)
+  }),
+
+  http.post(`${BASE}/chromie/regions/:region/enable`, async () => {
+    await delay(50)
+    return HttpResponse.json({})
+  }),
+
+  http.post(`${BASE}/chromie/regions/:region/disable`, async () => {
+    await delay(50)
+    return HttpResponse.json({})
+  }),
 ]
 
 // =============================================================================
@@ -169,6 +199,16 @@ export const errorHandlers = {
   ruleNotFound: http.get(`${BASE}/rules/:ruleId`, async () => {
     await delay(50)
     return HttpResponse.json({ message: 'Rule not found' }, { status: 404 })
+  }),
+
+  chromieRegionsError: http.get(`${BASE}/chromie/regions`, async () => {
+    await delay(50)
+    return HttpResponse.json({ message: 'Failed to load regions' }, { status: 500 })
+  }),
+
+  toggleRegionError: http.post(`${BASE}/chromie/regions/:region/enable`, async () => {
+    await delay(50)
+    return HttpResponse.json({ message: 'Failed to toggle region' }, { status: 500 })
   }),
 }
 
@@ -205,4 +245,26 @@ export const manyRulesHandler = (count: number) =>
   http.get(`${BASE}/rules`, async () => {
     await delay(50)
     return HttpResponse.json(Array.from({ length: count }, (_, i) => createRule({ id: i + 1 })))
+  })
+
+// =============================================================================
+// Admin Page Handlers
+// =============================================================================
+
+export const createAdminUserHandler = () =>
+  http.get(`${BASE}/user`, async () => {
+    await delay(50)
+    return HttpResponse.json(testAdminUser)
+  })
+
+export const createChromieRegionsHandler = (regions: string[]) =>
+  http.get(`${BASE}/chromie/regions`, async () => {
+    await delay(50)
+    return HttpResponse.json(regions)
+  })
+
+export const createDisabledRegionsHandler = (disabledRegions: string[]) =>
+  http.get(`${BASE}/chromie/regions/disabled`, async () => {
+    await delay(50)
+    return HttpResponse.json(disabledRegions)
   })

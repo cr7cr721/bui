@@ -253,3 +253,16 @@ export const testRules = [
 ]
 
 export const testRegions = createRegions()
+
+// =============================================================================
+// Chromie Regions (Admin Page)
+// =============================================================================
+
+export const testChromieRegions = ['us-west', 'us-east', 'eu-west', 'eu-east', 'apac']
+
+export const testDisabledRegions = ['eu-east', 'apac']
+
+export const createChromieRegion = (name: string, isDisabled = false) => ({
+  name,
+  isDisabled,
+})
