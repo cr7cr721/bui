@@ -3,7 +3,7 @@ import { useForm } from '@mantine/form'
 import { useEffect } from 'react'
 import type { Group as GroupType } from '@/types/api' // ← Alias the type
 
-interface EditGroupModalProps {
+export interface EditGroupModalProps {
   opened: boolean
   group: GroupType | null // ← Use the alias
   isUpdating: boolean

@@ -188,6 +188,11 @@ export const errorHandlers = {
     return HttpResponse.json({ message: 'Internal server error' }, { status: 500 })
   }),
 
+  userError: http.get(`${BASE}/user`, async () => {
+    await delay(50)
+    return HttpResponse.json({ message: 'Failed to load user' }, { status: 500 })
+  }),
+
   validationError: http.post(`${BASE}/validate`, async () => {
     await delay(50)
     return HttpResponse.json({
@@ -267,4 +272,46 @@ export const createDisabledRegionsHandler = (disabledRegions: string[]) =>
   http.get(`${BASE}/chromie/regions/disabled`, async () => {
     await delay(50)
     return HttpResponse.json(disabledRegions)
+  })
+
+// =============================================================================
+// Groups Page Handlers
+// =============================================================================
+
+import type { Group } from '@/types/api'
+
+export const createUserWithGroupsHandler = (groups: Group[]) =>
+  http.get(`${BASE}/user`, async () => {
+    await delay(50)
+    return HttpResponse.json({ ...testUser, groups })
+  })
+
+export const createAdminWithGroupsHandler = (groups: Group[]) =>
+  http.get(`${BASE}/user`, async () => {
+    await delay(50)
+    return HttpResponse.json({ ...testAdminUser, groups })
+  })
+
+export const createGroupsHandler = (groups: Group[]) =>
+  http.get(`${BASE}/groups`, async () => {
+    await delay(50)
+    return HttpResponse.json(groups)
+  })
+
+export const createGroupSuccessHandler = () =>
+  http.post(`${BASE}/groups`, async () => {
+    await delay(50)
+    return HttpResponse.json({
+      id: 100,
+      fullname: 'New Group',
+      ad_group: 'AD-NEW',
+      write: true,
+      public: true,
+    })
+  })
+
+export const updateGroupSuccessHandler = () =>
+  http.post(`${BASE}/groups/:groupId`, async () => {
+    await delay(50)
+    return HttpResponse.json({})
   })
