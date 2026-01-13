@@ -73,29 +73,6 @@ describe('RulesTableRow', () => {
 
       expect(screen.getByText('john@example.com')).toBeInTheDocument()
     })
-
-    it('displays group name', () => {
-      const rule = createRule({ group_name: 'Engineering Team' })
-      renderRow({ rule })
-
-      expect(screen.getByText('Engineering Team')).toBeInTheDocument()
-    })
-  })
-
-  describe('status badge', () => {
-    it('shows Enabled badge for enabled rules', () => {
-      const rule = createRule({ enabled: 1 })
-      renderRow({ rule })
-
-      expect(screen.getByText('Enabled')).toBeInTheDocument()
-    })
-
-    it('shows Disabled badge for disabled rules', () => {
-      const rule = createRule({ enabled: 0 })
-      renderRow({ rule })
-
-      expect(screen.getByText('Disabled')).toBeInTheDocument()
-    })
   })
 
   describe('region badges', () => {
@@ -113,17 +90,6 @@ describe('RulesTableRow', () => {
       renderRow({ rule })
 
       expect(screen.getByText('DEV')).toBeInTheDocument()
-    })
-  })
-
-  describe('date display', () => {
-    it('displays formatted updated date', () => {
-      const timestamp = new Date('2024-06-15T10:30:00Z').getTime() / 1000
-      const rule = createRule({ updated: timestamp })
-      renderRow({ rule })
-
-      // Date format varies by locale
-      expect(screen.getByText(/6\/15\/2024|15\/6\/2024/)).toBeInTheDocument()
     })
   })
 
@@ -201,6 +167,58 @@ describe('RulesTableRow', () => {
 
       const row = screen.getByRole('row')
       expect(row).toHaveStyle({ backgroundColor: 'var(--mantine-color-blue-9)' })
+    })
+  })
+
+  describe('history modal', () => {
+    it('opens history modal when row is clicked', async () => {
+      const rule = createRule({
+        id: 123,
+        name: 'Test Rule',
+        group_name: 'Test Group',
+        trigger_count: 0,
+      })
+      renderRow({ rule })
+
+      // Click on the row
+      const row = screen.getByRole('row')
+      await userEvent.click(row)
+
+      // History modal should open - wait for it to appear
+      const dialog = await screen.findByRole('dialog')
+      expect(dialog).toBeInTheDocument()
+    })
+
+    it('shows group name in history modal', async () => {
+      const rule = createRule({ group_name: 'Engineering Team', trigger_count: 0 })
+      renderRow({ rule })
+
+      const row = screen.getByRole('row')
+      await userEvent.click(row)
+
+      // Wait for dialog
+      await screen.findByRole('dialog')
+      // The group name appears in the modal under BEAM Group label
+      expect(screen.getAllByText('Engineering Team').length).toBeGreaterThan(0)
+    })
+
+    it('shows BEAM Group label in history modal', async () => {
+      const rule = createRule({ trigger_count: 0 })
+      renderRow({ rule })
+
+      const row = screen.getByRole('row')
+      await userEvent.click(row)
+
+      await screen.findByRole('dialog')
+      expect(screen.getByText('BEAM Group')).toBeInTheDocument()
+    })
+
+    it('has pointer cursor on row', () => {
+      const rule = createRule({ trigger_count: 0 })
+      renderRow({ rule })
+
+      const row = screen.getByRole('row')
+      expect(row).toHaveStyle({ cursor: 'pointer' })
     })
   })
 })

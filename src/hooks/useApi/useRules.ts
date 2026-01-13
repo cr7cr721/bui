@@ -38,6 +38,15 @@ export const useTriggers = (ruleId: number, enabled = true) => {
   })
 }
 
+export const useRuleHistory = (ruleId: number, enabled = true) => {
+  return useQuery({
+    queryKey: ['ruleHistory', ruleId],
+    queryFn: () => rulesService.getHistory(ruleId),
+    enabled: !!ruleId && enabled,
+    staleTime: 1000 * 60,
+  })
+}
+
 export const useCreateRule = () => {
   const queryClient = useQueryClient()
 

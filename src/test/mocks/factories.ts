@@ -1,7 +1,15 @@
 // test/mocks/factories.ts
 // Type-safe mock data factories using Faker
 import { faker } from '@faker-js/faker'
-import type { User, Group, Rule, Region, RuleTrigger, CreateRulePayload } from '@/types/api'
+import type {
+  User,
+  Group,
+  Rule,
+  Region,
+  RuleTrigger,
+  CreateRulePayload,
+  RuleHistoryEntry,
+} from '@/types/api'
 import type {
   RuleFormData,
   SearchInputFormData,
@@ -266,3 +274,91 @@ export const createChromieRegion = (name: string, isDisabled = false) => ({
   name,
   isDisabled,
 })
+
+// =============================================================================
+// Rule History Entry Factory
+// =============================================================================
+
+const HISTORY_ACTIONS = ['update', 'move', 'enable', 'disable', 'create', 'delete'] as const
+
+export const createRuleHistoryEntry = (
+  overrides: Partial<RuleHistoryEntry> = {}
+): RuleHistoryEntry => ({
+  rule_id: faker.number.int({ min: 1, max: 10000 }),
+  action: faker.helpers.arrayElement(HISTORY_ACTIONS),
+  username: faker.internet.username(),
+  date: faker.date.past().toISOString(),
+  version: faker.datatype.boolean() ? faker.number.int({ min: 1, max: 50 }) : null,
+  region: faker.helpers.arrayElement(REGION_NAMES),
+  ...overrides,
+})
+
+export const createRuleHistoryEntries = (
+  count: number,
+  ruleId?: number,
+  overrides: Partial<RuleHistoryEntry> = {}
+): RuleHistoryEntry[] => {
+  const entries: RuleHistoryEntry[] = []
+  let currentVersion = faker.number.int({ min: 1, max: 10 })
+
+  for (let i = 0; i < count; i++) {
+    const action = faker.helpers.arrayElement(HISTORY_ACTIONS)
+    const entry: RuleHistoryEntry = {
+      rule_id: ruleId ?? faker.number.int({ min: 1, max: 10000 }),
+      action,
+      username: faker.internet.username(),
+      date: faker.date.recent({ days: 30 }).toISOString(),
+      version: action === 'update' ? currentVersion++ : null,
+      region: faker.helpers.arrayElement(REGION_NAMES),
+      ...overrides,
+    }
+    entries.push(entry)
+  }
+
+  // Sort by date descending (most recent first)
+  return entries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+}
+
+// Sample test history data with realistic progression
+export const createTestRuleHistory = (ruleId: number): RuleHistoryEntry[] => [
+  {
+    rule_id: ruleId,
+    action: 'update',
+    username: 'mmohiuddin',
+    date: '2025-11-19T03:27:39.000Z',
+    version: 2,
+    region: 'dev',
+  },
+  {
+    rule_id: ruleId,
+    action: 'move',
+    username: 'bechoi',
+    date: '2018-10-01T21:28:15.000Z',
+    version: null,
+    region: 'dev',
+  },
+  {
+    rule_id: ruleId,
+    action: 'enable',
+    username: 'bechoi',
+    date: '2018-08-09T00:02:51.000Z',
+    version: null,
+    region: 'dev',
+  },
+  {
+    rule_id: ruleId,
+    action: 'disable',
+    username: 'cpyle',
+    date: '2018-08-09T00:45:05.000Z',
+    version: null,
+    region: 'dev',
+  },
+  {
+    rule_id: ruleId,
+    action: 'create',
+    username: 'bechoi',
+    date: '2018-07-25T22:58:03.000Z',
+    version: 1,
+    region: 'dev',
+  },
+]

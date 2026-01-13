@@ -8,6 +8,7 @@ import {
   testDisabledRegions,
   createRuleTriggers,
   createRule,
+  createTestRuleHistory,
 } from '@/test'
 
 const BASE = 'https://gdp-beam-api.dev.data.blz.dev'
@@ -100,6 +101,12 @@ export const handlers = [
     const rule = testRules.find((r) => r.id === ruleId)
     if (!rule) return HttpResponse.json([])
     return HttpResponse.json(createRuleTriggers(rule.trigger_count, ruleId))
+  }),
+
+  http.get(`${BASE}/rules/:ruleId/history`, async ({ params }) => {
+    await delay(50)
+    const ruleId = Number(params.ruleId)
+    return HttpResponse.json(createTestRuleHistory(ruleId))
   }),
 
   http.get(`${BASE}/rules/values/author`, async () => {
@@ -215,6 +222,11 @@ export const errorHandlers = {
     await delay(50)
     return HttpResponse.json({ message: 'Failed to toggle region' }, { status: 500 })
   }),
+
+  ruleHistoryError: http.get(`${BASE}/rules/:ruleId/history`, async () => {
+    await delay(50)
+    return HttpResponse.json({ message: 'Failed to load history' }, { status: 500 })
+  }),
 }
 
 // =============================================================================
@@ -314,4 +326,22 @@ export const updateGroupSuccessHandler = () =>
   http.post(`${BASE}/groups/:groupId`, async () => {
     await delay(50)
     return HttpResponse.json({})
+  })
+
+// =============================================================================
+// Rule History Handlers
+// =============================================================================
+
+import type { RuleHistoryEntry } from '@/types/api'
+
+export const createRuleHistoryHandler = (history: RuleHistoryEntry[]) =>
+  http.get(`${BASE}/rules/:ruleId/history`, async () => {
+    await delay(50)
+    return HttpResponse.json(history)
+  })
+
+export const createEmptyHistoryHandler = () =>
+  http.get(`${BASE}/rules/:ruleId/history`, async () => {
+    await delay(50)
+    return HttpResponse.json([])
   })

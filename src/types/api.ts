@@ -167,3 +167,16 @@ export interface Region {
   name: string
   description: string
 }
+
+// =============================================================================
+// Rule History
+// =============================================================================
+
+export interface RuleHistoryEntry {
+  rule_id: number
+  action: 'update' | 'move' | 'enable' | 'disable' | 'create' | 'delete'
+  username: string
+  date: string
+  version: number | null
+  region: string
+}

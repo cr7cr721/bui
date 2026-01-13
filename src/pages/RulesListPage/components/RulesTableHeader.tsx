@@ -42,7 +42,9 @@ export const RulesTableHeader = ({
       onClick={() => onSort(field)}
     >
       <Group gap={4}>
-        <Text fw={600}>{label}</Text>
+        <Text fw={600} size="sm">
+          {label}
+        </Text>
         {getSortIcon(field)}
       </Group>
     </Table.Th>
@@ -52,17 +54,24 @@ export const RulesTableHeader = ({
     <Table.Thead>
       <Table.Tr>
         {showCheckbox && (
-          <Table.Th style={{ width: 40 }}>
-            <Checkbox checked={allSelected} indeterminate={someSelected} onChange={onSelectAll} />
+          <Table.Th style={{ width: 36, padding: '8px' }}>
+            <Checkbox
+              checked={allSelected}
+              indeterminate={someSelected}
+              onChange={onSelectAll}
+              size="sm"
+            />
           </Table.Th>
         )}
-        <SortableHeader field="id" label="ID" width={80} />
+        <SortableHeader field="id" label="ID" width={70} />
         <SortableHeader field="name" label="Name" />
-        <Table.Th style={{ width: 100 }}>Status</Table.Th>
         <SortableHeader field="author" label="Author" />
-        <SortableHeader field="group_name" label="Group" />
-        <Table.Th>Regions</Table.Th>
-        <SortableHeader field="updated" label="Updated" />
+        <Table.Th style={{ width: 140 }}>
+          <Text fw={600} size="sm">
+            Regions & Status
+          </Text>
+        </Table.Th>
+        {showCheckbox && <Table.Th style={{ width: 80, textAlign: 'right', paddingRight: 16 }} />}
       </Table.Tr>
     </Table.Thead>
   )

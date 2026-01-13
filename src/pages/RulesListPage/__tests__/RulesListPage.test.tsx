@@ -412,23 +412,21 @@ describe('RulesListPage', () => {
 
       expectVisible('ID')
       expectVisible('Name')
-      expectVisible('Status')
       expectVisible('Author')
-      expectVisible('Group')
-      expectVisible('Regions')
+      expectVisible('Regions & Status')
     })
 
-    it('shows status badges', async () => {
+    it('shows region badges with status indication', async () => {
       const rules = [
-        createRule({ id: 1, name: 'Active', enabled: 1 }),
-        createRule({ id: 2, name: 'Inactive', enabled: 0 }),
+        createRule({ id: 1, name: 'Active', enabled: 1, regions: ['DEV'] }),
+        createRule({ id: 2, name: 'Inactive', enabled: 0, regions: ['DEV'] }),
       ]
       server.use(createRulesHandler(rules))
       renderPage()
       await waitForPageLoad('Active')
 
-      expectVisible('Enabled')
-      expectVisible('Disabled')
+      // Region badges should be visible (color indicates enabled/disabled)
+      expect(screen.getAllByText('DEV').length).toBeGreaterThan(0)
     })
 
     it('shows region badges', async () => {

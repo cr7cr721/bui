@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { Box, Loader, Center, Text, Alert, Flex } from '@mantine/core'
 import { IconAlertCircle, IconLock } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
+import { useNavigate } from 'react-router-dom'
 import { useStore } from '@/store/useStore'
 import { useRules, useUser, useMoveRulesToGroup, useDeleteRules } from '@/hooks/useApi'
 import { FilterSidebar } from './components/FilterSidebar'
@@ -21,6 +22,7 @@ export const RulesListPage = () => {
   const { data: user } = useUser()
   const moveRulesMutation = useMoveRulesToGroup()
   const deleteRulesMutation = useDeleteRules()
+  const navigate = useNavigate()
 
   const userLoggedIn = isAuthenticated() && !!user
 
@@ -31,6 +33,8 @@ export const RulesListPage = () => {
   const [targetGroup, setTargetGroup] = useState<string | null>(null)
   const [sortField, setSortField] = useState<SortField>('updated')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+  // Track if we're doing a single-rule action vs bulk
+  const [singleRuleAction, setSingleRuleAction] = useState<number | null>(null)
 
   // Filter and sort rules
   const filteredAndSortedRules = useMemo(() => {
@@ -111,17 +115,19 @@ export const RulesListPage = () => {
   }
 
   const handleDeleteSelected = async () => {
+    const ruleIds = getRuleIdsForAction()
     try {
-      await deleteRulesMutation.mutateAsync(selectedRuleIds)
+      await deleteRulesMutation.mutateAsync(ruleIds)
 
       notifications.show({
         title: 'Success',
-        message: `${selectedRuleIds.length} rule(s) deleted successfully`,
+        message: `${ruleIds.length} rule(s) deleted successfully`,
         color: 'green',
       })
 
-      setSelectedRuleIds([])
+      setSelectedRuleIds((prev) => prev.filter((id) => !ruleIds.includes(id)))
       setDeleteModalOpen(false)
+      setSingleRuleAction(null)
     } catch {
       notifications.show({
         title: 'Error',
@@ -140,24 +146,26 @@ export const RulesListPage = () => {
       return
     }
 
+    const ruleIds = getRuleIdsForAction()
     const groupName =
       user?.groups?.find((g) => g.id.toString() === targetGroup)?.fullname || targetGroup
 
     try {
       await moveRulesMutation.mutateAsync({
-        ruleIds: selectedRuleIds,
+        ruleIds,
         groupId: parseInt(targetGroup),
       })
 
       notifications.show({
         title: 'Success',
-        message: `${selectedRuleIds.length} rule(s) moved to ${groupName}`,
+        message: `${ruleIds.length} rule(s) moved to ${groupName}`,
         color: 'green',
       })
 
-      setSelectedRuleIds([])
+      setSelectedRuleIds((prev) => prev.filter((id) => !ruleIds.includes(id)))
       setMoveModalOpen(false)
       setTargetGroup(null)
+      setSingleRuleAction(null)
     } catch (error) {
       notifications.show({
         title: 'Error',
@@ -170,6 +178,31 @@ export const RulesListPage = () => {
   const handleCloseMoveModal = () => {
     setMoveModalOpen(false)
     setTargetGroup(null)
+    setSingleRuleAction(null)
+  }
+
+  // Single rule action handlers
+  const handleEditRule = (ruleId: number) => {
+    navigate(`/rules/${ruleId}/edit`)
+  }
+
+  const handleMoveRule = (ruleId: number) => {
+    setSingleRuleAction(ruleId)
+    setMoveModalOpen(true)
+  }
+
+  const handleDeleteRule = (ruleId: number) => {
+    setSingleRuleAction(ruleId)
+    setDeleteModalOpen(true)
+  }
+
+  // Get the rule IDs to act on (single rule or selected rules)
+  const getRuleIdsForAction = () => {
+    return singleRuleAction ? [singleRuleAction] : selectedRuleIds
+  }
+
+  const getActionRuleCount = () => {
+    return singleRuleAction ? 1 : selectedRuleIds.length
   }
 
   // Main content rendering
@@ -234,6 +267,9 @@ export const RulesListPage = () => {
           onSelectAll={handleSelectAll}
           onSelectRule={handleSelectRule}
           onSort={handleSort}
+          onEditRule={handleEditRule}
+          onMoveRule={handleMoveRule}
+          onDeleteRule={handleDeleteRule}
         />
       </Box>
     )
@@ -287,15 +323,18 @@ export const RulesListPage = () => {
       {/* Modals */}
       <DeleteConfirmationModal
         opened={deleteModalOpen}
-        ruleCount={selectedRuleIds.length}
+        ruleCount={getActionRuleCount()}
         isDeleting={deleteRulesMutation.isPending}
-        onClose={() => setDeleteModalOpen(false)}
+        onClose={() => {
+          setDeleteModalOpen(false)
+          setSingleRuleAction(null)
+        }}
         onConfirm={handleDeleteSelected}
       />
 
       <MoveToGroupModal
         opened={moveModalOpen}
-        ruleCount={selectedRuleIds.length}
+        ruleCount={getActionRuleCount()}
         groups={user?.groups || []}
         selectedGroup={targetGroup}
         isMoving={moveRulesMutation.isPending}

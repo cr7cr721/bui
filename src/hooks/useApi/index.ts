@@ -8,6 +8,7 @@ export {
   useRule,
   useAuthors,
   useTriggers,
+  useRuleHistory,
   useMoveRulesToGroup,
   useDeleteRules,
   useCreateRule,

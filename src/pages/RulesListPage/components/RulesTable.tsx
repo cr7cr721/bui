@@ -16,6 +16,9 @@ interface RulesTableProps {
   onSelectAll: () => void
   onSelectRule: (ruleId: number) => void
   onSort: (field: SortField) => void
+  onEditRule?: (ruleId: number) => void
+  onMoveRule?: (ruleId: number) => void
+  onDeleteRule?: (ruleId: number) => void
 }
 
 export const RulesTable = ({
@@ -27,6 +30,9 @@ export const RulesTable = ({
   onSelectAll,
   onSelectRule,
   onSort,
+  onEditRule,
+  onMoveRule,
+  onDeleteRule,
 }: RulesTableProps) => {
   const allSelected = rules.length > 0 && selectedRuleIds.length === rules.length
   const someSelected = selectedRuleIds.length > 0 && selectedRuleIds.length < rules.length
@@ -66,11 +72,10 @@ export const RulesTable = ({
           </Stack>
         </Center>
       ) : (
-        <Table.ScrollContainer minWidth={800}>
+        <Table.ScrollContainer minWidth={600}>
           <Table
             highlightOnHover
-            striped
-            verticalSpacing="sm"
+            verticalSpacing="xs"
             styles={{
               table: {
                 borderCollapse: 'collapse',
@@ -79,7 +84,10 @@ export const RulesTable = ({
                 backgroundColor: 'var(--mantine-color-dark-6)',
               },
               tr: {
-                borderBottom: '1px solid var(--mantine-color-dark-5)',
+                borderBottom: '1px solid var(--mantine-color-dark-6)',
+              },
+              th: {
+                padding: '10px 12px',
               },
             }}
           >
@@ -100,6 +108,9 @@ export const RulesTable = ({
                   isSelected={selectedRuleIds.includes(rule.id)}
                   showCheckbox={showCheckbox}
                   onSelect={onSelectRule}
+                  onEdit={onEditRule}
+                  onMove={onMoveRule}
+                  onDelete={onDeleteRule}
                 />
               ))}
             </Table.Tbody>

@@ -50,34 +50,16 @@ describe('RulesTableHeader', () => {
       expect(screen.getByText('Name')).toBeInTheDocument()
     })
 
-    it('displays Status column header', () => {
-      renderHeader()
-
-      expect(screen.getByText('Status')).toBeInTheDocument()
-    })
-
     it('displays Author column header', () => {
       renderHeader()
 
       expect(screen.getByText('Author')).toBeInTheDocument()
     })
 
-    it('displays Group column header', () => {
+    it('displays Regions & Status column header', () => {
       renderHeader()
 
-      expect(screen.getByText('Group')).toBeInTheDocument()
-    })
-
-    it('displays Regions column header', () => {
-      renderHeader()
-
-      expect(screen.getByText('Regions')).toBeInTheDocument()
-    })
-
-    it('displays Updated column header', () => {
-      renderHeader()
-
-      expect(screen.getByText('Updated')).toBeInTheDocument()
+      expect(screen.getByText('Regions & Status')).toBeInTheDocument()
     })
   })
 
@@ -150,38 +132,11 @@ describe('RulesTableHeader', () => {
       expect(onSort).toHaveBeenCalledWith('author')
     })
 
-    it('calls onSort with group_name when Group header clicked', async () => {
+    it('does not call onSort when Regions & Status header clicked (not sortable)', async () => {
       const onSort = vi.fn()
       renderHeader({ onSort })
 
-      await userEvent.click(screen.getByText('Group'))
-
-      expect(onSort).toHaveBeenCalledWith('group_name')
-    })
-
-    it('calls onSort with updated when Updated header clicked', async () => {
-      const onSort = vi.fn()
-      renderHeader({ onSort })
-
-      await userEvent.click(screen.getByText('Updated'))
-
-      expect(onSort).toHaveBeenCalledWith('updated')
-    })
-
-    it('does not call onSort when Status header clicked (not sortable)', async () => {
-      const onSort = vi.fn()
-      renderHeader({ onSort })
-
-      await userEvent.click(screen.getByText('Status'))
-
-      expect(onSort).not.toHaveBeenCalled()
-    })
-
-    it('does not call onSort when Regions header clicked (not sortable)', async () => {
-      const onSort = vi.fn()
-      renderHeader({ onSort })
-
-      await userEvent.click(screen.getByText('Regions'))
+      await userEvent.click(screen.getByText('Regions & Status'))
 
       expect(onSort).not.toHaveBeenCalled()
     })
@@ -226,8 +181,8 @@ describe('RulesTableHeader', () => {
       renderHeader({ showCheckbox: true })
 
       const headers = screen.getAllByRole('columnheader')
-      // Checkbox + ID + Name + Status + Author + Group + Regions + Updated = 8
-      expect(headers).toHaveLength(8)
+      // Checkbox + ID + Name + Author + Regions & Status + Actions = 6
+      expect(headers).toHaveLength(6)
     })
   })
 })

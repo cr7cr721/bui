@@ -1,5 +1,5 @@
 import { Paper, Group, Text, Button, Badge, Transition } from '@mantine/core'
-import { IconX, IconFolders, IconTrash, IconCheckbox } from '@tabler/icons-react'
+import { IconX, IconTransfer, IconTrash, IconCheckbox } from '@tabler/icons-react'
 
 interface BulkActionsToolbarProps {
   selectedCount: number
@@ -68,7 +68,7 @@ export const BulkActionsToolbar = ({
             variant={hasSelection ? 'light' : 'subtle'}
             color="blue"
             size="sm"
-            leftSection={<IconFolders size={16} />}
+            leftSection={<IconTransfer size={16} />}
             onClick={onMoveToGroup}
             disabled={!hasSelection}
           >

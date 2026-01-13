@@ -1,6 +1,12 @@
 // services/rules.service.ts
 import { httpClient } from '@/services'
-import type { Rule, RuleTrigger, CreateRulePayload, RuleResponse } from '@/types/api'
+import type {
+  Rule,
+  RuleTrigger,
+  CreateRulePayload,
+  RuleResponse,
+  RuleHistoryEntry,
+} from '@/types/api'
 
 export const rulesService = {
   getRules: (regions: string, groupId: number) =>
@@ -43,4 +49,6 @@ export const rulesService = {
   bulkDelete: async (ruleIds: number[]) => {
     await Promise.all(ruleIds.map((ruleId) => rulesService.delete(ruleId)))
   },
+
+  getHistory: (ruleId: number) => httpClient.get<RuleHistoryEntry[]>(`/rules/${ruleId}/history`),
 }
