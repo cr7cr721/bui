@@ -38,7 +38,7 @@ export const RulesTableRow = ({
     if (onEdit) {
       onEdit(rule.id)
     } else {
-      navigate(`/rules/${rule.id}/edit`)
+      navigate(`/rules/${rule.id}`)
     }
   }
 

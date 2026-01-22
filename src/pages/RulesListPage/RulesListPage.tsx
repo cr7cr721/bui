@@ -183,7 +183,7 @@ export const RulesListPage = () => {
 
   // Single rule action handlers
   const handleEditRule = (ruleId: number) => {
-    navigate(`/rules/${ruleId}/edit`)
+    navigate(`/rules/${ruleId}`)
   }
 
   const handleMoveRule = (ruleId: number) => {

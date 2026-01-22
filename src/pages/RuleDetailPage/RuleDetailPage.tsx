@@ -1,170 +1,246 @@
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { useRules } from '@/hooks/useApi'
-import { useStore } from '@/store/useStore'
+import { FormProvider, useForm } from 'react-hook-form'
+import {
+  Container,
+  Paper,
+  Title,
+  Tabs,
+  Stepper,
+  LoadingOverlay,
+  Alert,
+  Group,
+  Badge,
+  Button,
+  Anchor,
+} from '@mantine/core'
+import { notifications } from '@mantine/notifications'
+import { IconForms, IconCode, IconAlertCircle, IconArrowLeft, IconCheck } from '@tabler/icons-react'
+
+import { useRule, useUpdateRule, useUser } from '@/hooks/useApi'
+import { transformPayloadToForm, transformFormToPayload } from '@/utils/ruleTransform'
+import type { RuleFormData } from '@/types/rule'
+import { STEPS, INITIAL_TRANSFORM, INITIAL_CONDITION } from '@/pages/CreateRulePage/constants'
+import { StepNavigation, JsonView } from '@/pages/CreateRulePage/components'
+import {
+  InfoScheduleStep,
+  ParametersStep,
+  InputsStep,
+  TransformStep,
+  ConditionStep,
+  ActionsStep,
+} from '@/pages/CreateRulePage/steps'
+
+const STEP_COMPONENTS = [
+  InfoScheduleStep,
+  ParametersStep,
+  InputsStep,
+  TransformStep,
+  ConditionStep,
+  ActionsStep,
+]
 
 export const RuleDetailPage = () => {
   const { id } = useParams<{ id: string }>()
-  const { filters } = useStore()
-  const { data: rules, isLoading } = useRules(filters.region, parseInt(filters.group))
+  const ruleId = parseInt(id || '0')
 
-  const rule = rules?.find((r) => r.id === parseInt(id || ''))
+  const { data: ruleData, isLoading, error } = useRule(ruleId)
+  const { data: user } = useUser()
+  const updateRuleMutation = useUpdateRule()
+
+  const [view, setView] = useState<'form' | 'json'>('form')
+  const [activeStep, setActiveStep] = useState(0)
+
+  // Initialize form with default values
+  const methods = useForm<RuleFormData>({
+    defaultValues: {
+      name: '',
+      authorEmail: '',
+      regions: [],
+      scheduleType: 'default',
+      scheduleValue: '',
+      parameters: [],
+      inputs: [],
+      transformCode: INITIAL_TRANSFORM,
+      conditionCode: INITIAL_CONDITION,
+      actions: [],
+    },
+    mode: 'onChange',
+  })
+
+  // Transform API data to form data when rule loads
+  const formData = useMemo(() => {
+    if (ruleData?.body) {
+      return transformPayloadToForm(ruleData.body)
+    }
+    return null
+  }, [ruleData])
+
+  // Reset form when rule data loads
+  useEffect(() => {
+    if (formData) {
+      methods.reset(formData)
+    }
+  }, [formData, methods])
+
+  // Check if user can edit this rule
+  const canEdit = useMemo(() => {
+    if (!user?.groups) return false
+    // User can edit if they have write access to any group
+    return user.groups.some((g) => g.write)
+  }, [user])
+
+  const nextStep = () => {
+    setActiveStep((s) => Math.min(s + 1, 5))
+  }
+
+  const prevStep = () => {
+    setActiveStep((s) => Math.max(s - 1, 0))
+  }
+
+  const handleSave = async () => {
+    const data = methods.getValues()
+    try {
+      const payload = transformFormToPayload(data)
+      await updateRuleMutation.mutateAsync({
+        ruleId,
+        rule: payload,
+      })
+
+      notifications.show({
+        title: 'Success',
+        message: 'Rule updated successfully!',
+        color: 'green',
+        icon: <IconCheck size={16} />,
+      })
+    } catch (err) {
+      notifications.show({
+        title: 'Error',
+        message: err instanceof Error ? err.message : 'Failed to update rule.',
+        color: 'red',
+        icon: <IconAlertCircle size={16} />,
+      })
+    }
+  }
+
+  const StepComponent = STEP_COMPONENTS[activeStep]
 
   if (isLoading) {
     return (
-      <div className="text-center py-12">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-        <p className="mt-4 text-gray-600">Loading rule details...</p>
-      </div>
+      <Container size="xl">
+        <Paper shadow="sm" p="xl" withBorder pos="relative" mih={400}>
+          <LoadingOverlay visible={true} />
+        </Paper>
+      </Container>
     )
   }
 
-  if (!rule) {
+  if (error || !ruleData) {
     return (
-      <div className="text-center py-12">
-        <div className="text-red-600 text-xl mb-4">⚠️ Rule not found</div>
-        <Link to="/" className="text-blue-600 hover:text-blue-800">
-          ← Back to Rules List
-        </Link>
-      </div>
+      <Container size="xl">
+        <Paper shadow="sm" p="xl" withBorder>
+          <Alert icon={<IconAlertCircle size={16} />} title="Error" color="red" variant="light">
+            {error?.message || 'Rule not found'}
+          </Alert>
+          <Button
+            component={Link}
+            to="/"
+            leftSection={<IconArrowLeft size={16} />}
+            variant="subtle"
+            mt="md"
+          >
+            Back to Rules List
+          </Button>
+        </Paper>
+      </Container>
     )
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-6">
-        <Link to="/" className="text-blue-600 hover:text-blue-800 text-sm">
-          ← Back to Rules List
-        </Link>
-      </div>
-
-      <div className="bg-white rounded-lg shadow-sm border">
-        <div className="px-6 py-4 border-b">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold">{rule.name}</h1>
-            <span
-              className={`px-3 py-1 rounded-full text-sm font-medium ${
-                rule.enabled ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-              }`}
-            >
-              {rule.enabled ? 'Enabled' : 'Disabled'}
-            </span>
-          </div>
-        </div>
-
-        <div className="p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
-                  Basic Info
-                </h3>
-                <dl className="mt-2 space-y-2">
-                  <div>
-                    <dt className="text-sm font-medium text-gray-900">ID</dt>
-                    <dd className="text-sm text-gray-700">{rule.id}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-900">Author</dt>
-                    <dd className="text-sm text-gray-700">{rule.author}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-900">Group</dt>
-                    <dd className="text-sm text-gray-700">
-                      {rule.group_name} (ID: {rule.group_id})
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-900">Version</dt>
-                    <dd className="text-sm text-gray-700">{rule.version}</dd>
-                  </div>
-                </dl>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
-                  Timestamps
-                </h3>
-                <dl className="mt-2 space-y-2">
-                  <div>
-                    <dt className="text-sm font-medium text-gray-900">Created</dt>
-                    <dd className="text-sm text-gray-700">
-                      {new Date(rule.created * 1000).toLocaleString()}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-900">Updated</dt>
-                    <dd className="text-sm text-gray-700">
-                      {new Date(rule.updated * 1000).toLocaleString()}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-900">Wake Time</dt>
-                    <dd className="text-sm text-gray-700">{rule.wake_time || 'Not set'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-900">Trigger Count</dt>
-                    <dd className="text-sm text-gray-700">{rule.trigger_count}</dd>
-                  </div>
-                </dl>
-              </div>
-            </div>
-          </div>
-
+    <Container size="xl">
+      <Paper shadow="sm" p="xl" withBorder>
+        {/* Header */}
+        <Group justify="space-between" mb="xl">
           <div>
-            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">
-              Regions
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              {rule.regions.map((region) => (
-                <span
-                  key={region}
-                  className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
-                >
-                  {region}
-                </span>
-              ))}
-            </div>
+            <Anchor
+              component={Link}
+              to="/"
+              size="sm"
+              c="dimmed"
+              mb="xs"
+              style={{ display: 'block' }}
+            >
+              <Group gap={4}>
+                <IconArrowLeft size={14} />
+                Back to Rules List
+              </Group>
+            </Anchor>
+            <Group gap="md" align="center">
+              <Title order={2}>{ruleData.body.name}</Title>
+              <Badge color="blue" variant="light" size="lg">
+                ID: {ruleData.id}
+              </Badge>
+              {ruleData.version && (
+                <Badge color="gray" variant="light" size="lg">
+                  v{ruleData.version}
+                </Badge>
+              )}
+            </Group>
           </div>
-
-          {rule.enabledIn.length > 0 && (
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">
-                Enabled In
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {rule.enabledIn.map((region) => (
-                  <span
-                    key={region}
-                    className="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full"
-                  >
-                    {region}
-                  </span>
-                ))}
-              </div>
-            </div>
+          {canEdit && (
+            <Button
+              onClick={handleSave}
+              loading={updateRuleMutation.isPending}
+              leftSection={<IconCheck size={16} />}
+            >
+              Save Changes
+            </Button>
           )}
+        </Group>
 
-          {rule.unknownIn.length > 0 && (
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">
-                Unknown In
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {rule.unknownIn.map((region) => (
-                  <span
-                    key={region}
-                    className="px-3 py-1 bg-yellow-100 text-yellow-800 text-sm rounded-full"
-                  >
-                    {region}
-                  </span>
+        {!canEdit && (
+          <Alert icon={<IconAlertCircle size={16} />} color="yellow" variant="light" mb="xl">
+            You don't have write access to edit this rule. Viewing in read-only mode.
+          </Alert>
+        )}
+
+        <FormProvider {...methods}>
+          <Tabs value={view} onChange={(v) => setView(v as 'form' | 'json')} mb="xl">
+            <Tabs.List>
+              <Tabs.Tab value="form" leftSection={<IconForms size={16} />}>
+                Form View
+              </Tabs.Tab>
+              <Tabs.Tab value="json" leftSection={<IconCode size={16} />}>
+                Raw JSON
+              </Tabs.Tab>
+            </Tabs.List>
+
+            <Tabs.Panel value="form" pt="xl">
+              <Stepper active={activeStep} onStepClick={setActiveStep}>
+                {STEPS.map((step, i) => (
+                  <Stepper.Step key={i} label={step.label} description={step.description}>
+                    {StepComponent && <StepComponent />}
+                  </Stepper.Step>
                 ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+              </Stepper>
+
+              <StepNavigation
+                onBack={prevStep}
+                onNext={nextStep}
+                onViewJson={() => setView('json')}
+                onSave={handleSave}
+                isFirstStep={activeStep === 0}
+                isLastStep={activeStep === 5}
+                isSubmitting={updateRuleMutation.isPending}
+              />
+            </Tabs.Panel>
+
+            <Tabs.Panel value="json" pt="xl">
+              <JsonView onBackToForm={() => setView('form')} />
+            </Tabs.Panel>
+          </Tabs>
+        </FormProvider>
+      </Paper>
+    </Container>
   )
 }

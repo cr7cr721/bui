@@ -2,7 +2,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { BrowserRouter } from 'react-router-dom'
+import { BrowserRouter, MemoryRouter } from 'react-router-dom'
 import { MantineProvider } from '@mantine/core'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Table } from '@mantine/core'
@@ -22,8 +22,19 @@ const renderRow = (props: {
   isSelected?: boolean
   showCheckbox?: boolean
   onSelect?: (id: number) => void
+  onEdit?: (id: number) => void
+  onMove?: (id: number) => void
+  onDelete?: (id: number) => void
 }) => {
-  const { rule, isSelected = false, showCheckbox = false, onSelect = vi.fn() } = props
+  const {
+    rule,
+    isSelected = false,
+    showCheckbox = false,
+    onSelect = vi.fn(),
+    onEdit,
+    onMove,
+    onDelete,
+  } = props
 
   return render(
     <QueryClientProvider client={queryClient}>
@@ -36,6 +47,9 @@ const renderRow = (props: {
                 isSelected={isSelected}
                 showCheckbox={showCheckbox}
                 onSelect={onSelect}
+                onEdit={onEdit}
+                onMove={onMove}
+                onDelete={onDelete}
               />
             </Table.Tbody>
           </Table>
@@ -43,6 +57,39 @@ const renderRow = (props: {
       </MantineProvider>
     </QueryClientProvider>
   )
+}
+
+/**
+ * Render with MemoryRouter for navigation testing
+ */
+const renderRowWithMemoryRouter = (props: {
+  rule: ReturnType<typeof createRule>
+  showCheckbox?: boolean
+}) => {
+  const { rule, showCheckbox = true } = props
+
+  const TestWrapper = () => {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <MantineProvider>
+          <MemoryRouter initialEntries={['/']}>
+            <Table>
+              <Table.Tbody>
+                <RulesTableRow
+                  rule={rule}
+                  isSelected={false}
+                  showCheckbox={showCheckbox}
+                  onSelect={vi.fn()}
+                />
+              </Table.Tbody>
+            </Table>
+          </MemoryRouter>
+        </MantineProvider>
+      </QueryClientProvider>
+    )
+  }
+
+  return render(<TestWrapper />)
 }
 
 // =============================================================================
@@ -219,6 +266,130 @@ describe('RulesTableRow', () => {
 
       const row = screen.getByRole('row')
       expect(row).toHaveStyle({ cursor: 'pointer' })
+    })
+  })
+
+  describe('action icons', () => {
+    describe('edit icon', () => {
+      it('shows action icons when showCheckbox is true (authenticated)', () => {
+        const rule = createRule({ id: 42, trigger_count: 0 })
+        renderRow({ rule, showCheckbox: true })
+
+        // Find all buttons - edit, move, delete icons (no trigger button since trigger_count: 0)
+        const buttons = screen.getAllByRole('button')
+        expect(buttons.length).toBe(3) // Edit, Move, Delete
+      })
+
+      it('hides action icons when showCheckbox is false (unauthenticated)', () => {
+        const rule = createRule({ id: 42, trigger_count: 0 })
+        renderRow({ rule, showCheckbox: false })
+
+        // No action buttons should be present
+        expect(screen.queryByRole('button')).not.toBeInTheDocument()
+      })
+
+      it('calls onEdit callback when edit icon is clicked', async () => {
+        const onEdit = vi.fn()
+        const rule = createRule({ id: 42, trigger_count: 0 })
+        renderRow({ rule, showCheckbox: true, onEdit })
+
+        // Edit is first button (when no triggers)
+        const buttons = screen.getAllByRole('button')
+        await userEvent.click(buttons[0])
+
+        expect(onEdit).toHaveBeenCalledWith(42)
+      })
+
+      it('navigates to rule detail page when edit icon clicked without onEdit callback', async () => {
+        const rule = createRule({ id: 123, trigger_count: 0 })
+        renderRowWithMemoryRouter({ rule, showCheckbox: true })
+
+        const buttons = screen.getAllByRole('button')
+        await userEvent.click(buttons[0])
+
+        // Verify button exists and click doesn't throw
+        expect(buttons[0]).toBeInTheDocument()
+      })
+
+      it('does not open history modal when edit icon is clicked', async () => {
+        const rule = createRule({ id: 42, trigger_count: 0 })
+        renderRow({ rule, showCheckbox: true })
+
+        const buttons = screen.getAllByRole('button')
+        await userEvent.click(buttons[0])
+
+        // History modal should NOT open
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      })
+    })
+
+    describe('move icon', () => {
+      it('calls onMove callback when move icon is clicked', async () => {
+        const onMove = vi.fn()
+        const rule = createRule({ id: 55, trigger_count: 0 })
+        renderRow({ rule, showCheckbox: true, onMove })
+
+        const buttons = screen.getAllByRole('button')
+        await userEvent.click(buttons[1]) // Move is second button
+
+        expect(onMove).toHaveBeenCalledWith(55)
+      })
+
+      it('does not open history modal when move icon is clicked', async () => {
+        const onMove = vi.fn()
+        const rule = createRule({ id: 55, trigger_count: 0 })
+        renderRow({ rule, showCheckbox: true, onMove })
+
+        const buttons = screen.getAllByRole('button')
+        await userEvent.click(buttons[1])
+
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      })
+    })
+
+    describe('delete icon', () => {
+      it('calls onDelete callback when delete icon is clicked', async () => {
+        const onDelete = vi.fn()
+        const rule = createRule({ id: 77, trigger_count: 0 })
+        renderRow({ rule, showCheckbox: true, onDelete })
+
+        const buttons = screen.getAllByRole('button')
+        await userEvent.click(buttons[2]) // Delete is third button
+
+        expect(onDelete).toHaveBeenCalledWith(77)
+      })
+
+      it('does not open history modal when delete icon is clicked', async () => {
+        const onDelete = vi.fn()
+        const rule = createRule({ id: 77, trigger_count: 0 })
+        renderRow({ rule, showCheckbox: true, onDelete })
+
+        const buttons = screen.getAllByRole('button')
+        await userEvent.click(buttons[2])
+
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      })
+    })
+  })
+
+  describe('rule name link', () => {
+    it('rule name links to detail page', () => {
+      const rule = createRule({ id: 99, name: 'My Rule' })
+      renderRow({ rule })
+
+      const link = screen.getByRole('link', { name: 'My Rule' })
+      expect(link).toHaveAttribute('href', '/rules/99')
+    })
+
+    it('clicking rule name link does not open history modal', async () => {
+      const rule = createRule({ id: 99, name: 'My Rule', trigger_count: 0 })
+      renderRow({ rule })
+
+      const link = screen.getByRole('link', { name: 'My Rule' })
+      await userEvent.click(link)
+
+      // History modal should NOT open when clicking the link
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
   })
 })

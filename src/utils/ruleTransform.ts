@@ -1,7 +1,8 @@
 // utils/ruleTransform.ts
 // Transforms RuleFormData to CreateRulePayload for API submission
+// And reverse: CreateRulePayload to RuleFormData for editing
 
-import type { CreateRulePayload, RuleInput, RuleAction } from '@/types/api'
+import type { CreateRulePayload, RuleInput, RuleAction, ThrottleConfig } from '@/types/api'
 import type {
   RuleFormData,
   InputFormData,
@@ -15,6 +16,273 @@ import type {
   ToggleActionFormData,
   HttpActionFormData,
 } from '@/types/rule'
+import { INITIAL_TRANSFORM, INITIAL_CONDITION } from '@/pages/CreateRulePage/constants'
+
+// =============================================================================
+// API Payload -> Form Data (for editing existing rules)
+// =============================================================================
+
+/**
+ * Transform CreateRulePayload from API to RuleFormData for form editing
+ */
+export const transformPayloadToForm = (payload: CreateRulePayload): RuleFormData => {
+  // Determine schedule type
+  let scheduleType: 'default' | 'interval' | 'cron' = 'default'
+  let scheduleValue = ''
+  if (payload.schedule?.interval) {
+    scheduleType = 'interval'
+    scheduleValue = payload.schedule.interval
+  } else if (payload.schedule?.cron) {
+    scheduleType = 'cron'
+    scheduleValue = payload.schedule.cron
+  }
+
+  // Transform parameters
+  const parameters = payload.parameters
+    ? Object.entries(payload.parameters).map(([key, value]) => ({
+        key,
+        value: typeof value === 'string' ? value : JSON.stringify(value),
+      }))
+    : []
+
+  return {
+    name: payload.name,
+    authorEmail: payload.author,
+    regions: payload.regions || [],
+    scheduleType,
+    scheduleValue,
+    parameters,
+    inputs: (payload.inputs || []).map(reverseTransformInput),
+    transformCode: payload.transform || INITIAL_TRANSFORM,
+    conditionCode: payload.condition || INITIAL_CONDITION,
+    actions: (payload.actions || []).map(reverseTransformAction),
+  }
+}
+
+/**
+ * Reverse transform a single input from API format to form data
+ */
+const reverseTransformInput = (input: RuleInput): InputFormData => {
+  if ('search' in input) {
+    return reverseTransformSearchInput(input as { search: unknown; index?: string })
+  }
+  if ('request' in input) {
+    return reverseTransformHttpInput(
+      input as { request: { url: string; method: string; json?: boolean; body?: unknown } }
+    )
+  }
+  if ('static' in input) {
+    return reverseTransformStaticInput(input as { static: Record<string, unknown> })
+  }
+  if ('metric' in input) {
+    return reverseTransformMetricInput(
+      input as {
+        metric: {
+          start_relative: { value: string; unit: string }
+          metrics: Array<{
+            name?: string
+            tags?: unknown
+            group_by?: unknown
+            aggregators?: unknown
+          }>
+        }
+      }
+    )
+  }
+  // Default to static if unknown
+  return {
+    type: 'static',
+    json: JSON.stringify(input, null, 2),
+  }
+}
+
+const reverseTransformSearchInput = (input: {
+  search: unknown
+  index?: string
+}): SearchInputFormData => ({
+  type: 'search',
+  index: input.index || 'all-telemetry-v2-*',
+  searchBody: JSON.stringify(input.search, null, 2),
+})
+
+const reverseTransformHttpInput = (input: {
+  request: { url: string; method: string; json?: boolean; body?: unknown }
+}): HttpInputFormData => ({
+  type: 'http',
+  url: input.request.url || '',
+  method: (input.request.method as 'GET' | 'POST' | 'PUT') || 'GET',
+  isJson: input.request.json ?? true,
+  body: input.request.body
+    ? typeof input.request.body === 'string'
+      ? input.request.body
+      : JSON.stringify(input.request.body, null, 2)
+    : '',
+})
+
+const reverseTransformStaticInput = (input: {
+  static: Record<string, unknown>
+}): StaticInputFormData => ({
+  type: 'static',
+  json: JSON.stringify(input.static, null, 2),
+})
+
+const reverseTransformMetricInput = (input: {
+  metric: {
+    start_relative: { value: string; unit: string }
+    metrics: Array<{ name?: string; tags?: unknown; group_by?: unknown; aggregators?: unknown }>
+  }
+}): MetricInputFormData => {
+  const metric = input.metric.metrics?.[0] || {}
+  return {
+    type: 'metric',
+    startValue: input.metric.start_relative?.value || '10',
+    startUnit: (input.metric.start_relative?.unit as MetricInputFormData['startUnit']) || 'minutes',
+    metricName: metric.name || '',
+    tags: metric.tags ? JSON.stringify(metric.tags) : '{}',
+    groupBy: metric.group_by ? JSON.stringify(metric.group_by) : '[]',
+    aggregators: metric.aggregators ? JSON.stringify(metric.aggregators) : '[]',
+  }
+}
+
+/**
+ * Reverse transform a single action from API format to form data
+ */
+const reverseTransformAction = (action: RuleAction): ActionFormData => {
+  const throttle = (action as { throttle?: ThrottleConfig }).throttle
+
+  if ('email' in action) {
+    return reverseTransformEmailAction(
+      action as {
+        email: {
+          to: string
+          bcc?: string
+          subject: string
+          body: string
+          format: string
+          templateType: string
+        }
+        throttle?: ThrottleConfig
+      }
+    )
+  }
+  if ('telemetry-alert' in action) {
+    return reverseTransformTelemetryAction(
+      action as {
+        'telemetry-alert': {
+          summary: string
+          description: string
+          severity: number
+          condition_id?: string
+          qualifier?: string
+          format?: string
+        }
+        throttle?: ThrottleConfig
+      }
+    )
+  }
+  if ('toggle-watch' in action) {
+    return reverseTransformToggleAction(
+      action as {
+        'toggle-watch': { id: string | number; enable: boolean }
+        throttle?: ThrottleConfig
+      }
+    )
+  }
+  if ('request' in action) {
+    return reverseTransformHttpAction(
+      action as {
+        request: { url: string; method: string; json?: boolean; body?: unknown }
+        throttle?: ThrottleConfig
+      }
+    )
+  }
+  // Default to HTTP action
+  return {
+    type: 'http',
+    url: '',
+    method: 'POST',
+    isJson: true,
+    body: JSON.stringify(action, null, 2),
+    throttleKey: throttle?.key || '',
+    throttleDuration: throttle?.duration || '',
+  }
+}
+
+const reverseTransformEmailAction = (action: {
+  email: {
+    to: string
+    bcc?: string
+    subject: string
+    body: string
+    format: string
+    templateType: string
+  }
+  throttle?: ThrottleConfig
+}): EmailActionFormData => ({
+  type: 'email',
+  to: action.email.to || '',
+  bcc: action.email.bcc || '',
+  subject: action.email.subject || '',
+  body: action.email.body || '',
+  format: (action.email.format as 'text' | 'html' | 'markdown') || 'html',
+  templateType: (action.email.templateType as 'text' | 'handlebars') || 'handlebars',
+  throttleKey: action.throttle?.key || '',
+  throttleDuration: action.throttle?.duration || '',
+})
+
+const reverseTransformTelemetryAction = (action: {
+  'telemetry-alert': {
+    summary: string
+    description: string
+    severity: number
+    condition_id?: string
+    qualifier?: string
+    format?: string
+  }
+  throttle?: ThrottleConfig
+}): TelemetryActionFormData => ({
+  type: 'telemetry',
+  summary: action['telemetry-alert'].summary || '',
+  description: action['telemetry-alert'].description || '',
+  severity: (action['telemetry-alert'].severity as 1 | 2 | 3 | 4 | 5) || 4,
+  conditionId: action['telemetry-alert'].condition_id || '',
+  qualifier: action['telemetry-alert'].qualifier || '',
+  format: (action['telemetry-alert'].format as 'text' | 'handlebars') || 'handlebars',
+  throttleKey: action.throttle?.key || '',
+  throttleDuration: action.throttle?.duration || '',
+})
+
+const reverseTransformToggleAction = (action: {
+  'toggle-watch': { id: string | number; enable: boolean }
+  throttle?: ThrottleConfig
+}): ToggleActionFormData => ({
+  type: 'toggle',
+  ruleId: String(action['toggle-watch'].id || ''),
+  enable: action['toggle-watch'].enable ?? true,
+  throttleKey: action.throttle?.key || '',
+  throttleDuration: action.throttle?.duration || '',
+})
+
+const reverseTransformHttpAction = (action: {
+  request: { url: string; method: string; json?: boolean; body?: unknown }
+  throttle?: ThrottleConfig
+}): HttpActionFormData => ({
+  type: 'http',
+  url: action.request.url || '',
+  method: (action.request.method as 'GET' | 'POST' | 'PUT') || 'POST',
+  isJson: action.request.json ?? true,
+  body: action.request.body
+    ? typeof action.request.body === 'string'
+      ? action.request.body
+      : JSON.stringify(action.request.body, null, 2)
+    : '',
+  throttleKey: action.throttle?.key || '',
+  throttleDuration: action.throttle?.duration || '',
+})
+
+// =============================================================================
+// Form Data -> API Payload (for creating/updating rules)
+// =============================================================================
 
 /**
  * Transform RuleFormData from the form to CreateRulePayload for the API
