@@ -234,7 +234,7 @@ describe('RuleHistoryModal', () => {
   })
 
   describe('View Changes link', () => {
-    it('shows View Changes link for entries with version > 1', async () => {
+    it('shows View Changes button for entries with version > 1', async () => {
       const history: RuleHistoryEntry[] = [
         createRuleHistoryEntry({
           action: 'update',
@@ -246,13 +246,12 @@ describe('RuleHistoryModal', () => {
       renderModal({ ruleId: 100 })
 
       await waitFor(() => {
-        const link = screen.getByRole('link', { name: 'View Changes' })
-        expect(link).toBeInTheDocument()
-        expect(link).toHaveAttribute('href', '/rules/100?version=3&compare=2')
+        // View Changes is rendered as an Anchor with component="button", so it's a button not a link
+        expect(screen.getByRole('button', { name: 'View Changes' })).toBeInTheDocument()
       })
     })
 
-    it('does not show View Changes link for version 1', async () => {
+    it('does not show View Changes button for version 1', async () => {
       const history: RuleHistoryEntry[] = [
         createRuleHistoryEntry({
           action: 'create',
@@ -264,7 +263,7 @@ describe('RuleHistoryModal', () => {
       renderModal({})
 
       await waitFor(() => {
-        expect(screen.queryByRole('link', { name: 'View Changes' })).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'View Changes' })).not.toBeInTheDocument()
       })
     })
   })

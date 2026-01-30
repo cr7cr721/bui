@@ -518,13 +518,13 @@ App
 
 ### State Management Strategy
 
-| State Type       | Tool            | Example                 | Persistence  |
-| ---------------- | --------------- | ----------------------- | ------------ |
-| **Server State** | TanStack Query  | Rules, Users, Regions   | Memory cache |
-| **Auth State**   | Zustand         | Token, User             | localStorage |
-| **UI State**     | Zustand         | Filters, Selection      | localStorage |
-| **Form State**   | React Hook Form | Create Rule Form        | Memory       |
-| **Local State**  | useState        | Modal open/close        | Memory       |
+| State Type       | Tool            | Example               | Persistence  |
+| ---------------- | --------------- | --------------------- | ------------ |
+| **Server State** | TanStack Query  | Rules, Users, Regions | Memory cache |
+| **Auth State**   | Zustand         | Token, User           | localStorage |
+| **UI State**     | Zustand         | Filters, Selection    | localStorage |
+| **Form State**   | React Hook Form | Create Rule Form      | Memory       |
+| **Local State**  | useState        | Modal open/close      | Memory       |
 
 ---
 
@@ -546,18 +546,18 @@ x-auth-token: <token>
 
 ### Key Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/user/login` | Authenticate user |
-| GET | `/user` | Get current user info |
-| GET | `/regions` | Get available regions |
-| GET | `/rules?regions=DEV&group=1` | Get rules |
-| DELETE | `/rules/{id}` | Delete rule |
-| PUT | `/rules/{id}/group/{groupId}` | Move rule to group |
-| GET | `/chromie/regions` | Get Chromie regions |
-| GET | `/chromie/regions/disabled` | Get disabled regions |
-| POST | `/chromie/regions/{region}/enable` | Enable region |
-| POST | `/chromie/regions/{region}/disable` | Disable region |
+| Method | Endpoint                            | Description           |
+| ------ | ----------------------------------- | --------------------- |
+| POST   | `/user/login`                       | Authenticate user     |
+| GET    | `/user`                             | Get current user info |
+| GET    | `/regions`                          | Get available regions |
+| GET    | `/rules?regions=DEV&group=1`        | Get rules             |
+| DELETE | `/rules/{id}`                       | Delete rule           |
+| PUT    | `/rules/{id}/group/{groupId}`       | Move rule to group    |
+| GET    | `/chromie/regions`                  | Get Chromie regions   |
+| GET    | `/chromie/regions/disabled`         | Get disabled regions  |
+| POST   | `/chromie/regions/{region}/enable`  | Enable region         |
+| POST   | `/chromie/regions/{region}/disable` | Disable region        |
 
 ---
 

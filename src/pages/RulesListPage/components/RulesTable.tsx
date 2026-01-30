@@ -30,7 +30,6 @@ export const RulesTable = ({
   onSelectAll,
   onSelectRule,
   onSort,
-  onEditRule,
   onMoveRule,
   onDeleteRule,
 }: RulesTableProps) => {
@@ -108,7 +107,6 @@ export const RulesTable = ({
                   isSelected={selectedRuleIds.includes(rule.id)}
                   showCheckbox={showCheckbox}
                   onSelect={onSelectRule}
-                  onEdit={onEditRule}
                   onMove={onMoveRule}
                   onDelete={onDeleteRule}
                 />

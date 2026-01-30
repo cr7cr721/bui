@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { Table, Checkbox, Anchor, Badge, Text, Group, Tooltip, ActionIcon } from '@mantine/core'
+import { Table, Checkbox, Badge, Text, Group, Tooltip, ActionIcon } from '@mantine/core'
 import { IconAlertCircle, IconPencil, IconTransfer, IconTrash } from '@tabler/icons-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import type { Rule } from '@/types/api'
 import { RecentTriggersModal } from './RecentTriggersModal'
 import { RuleHistoryModal } from './RuleHistoryModal'
@@ -11,7 +11,6 @@ interface RulesTableRowProps {
   isSelected: boolean
   showCheckbox: boolean
   onSelect: (ruleId: number) => void
-  onEdit?: (ruleId: number) => void
   onMove?: (ruleId: number) => void
   onDelete?: (ruleId: number) => void
 }
@@ -21,7 +20,6 @@ export const RulesTableRow = ({
   isSelected,
   showCheckbox,
   onSelect,
-  onEdit,
   onMove,
   onDelete,
 }: RulesTableRowProps) => {
@@ -35,11 +33,7 @@ export const RulesTableRow = ({
 
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation()
-    if (onEdit) {
-      onEdit(rule.id)
-    } else {
-      navigate(`/rules/${rule.id}`)
-    }
+    navigate(`/rules/${rule.id}`)
   }
 
   const handleMove = (e: React.MouseEvent) => {
@@ -72,16 +66,14 @@ export const RulesTableRow = ({
           </Text>
         </Table.Td>
         <Table.Td style={{ padding: '8px 12px' }}>
-          <Group gap={6} wrap="nowrap">
-            <Anchor
-              component={Link}
-              to={`/rules/${rule.id}`}
-              fw={500}
-              size="sm"
-              onClick={(e) => e.stopPropagation()}
-            >
+          <Group gap={8} wrap="nowrap">
+            <Text fw={500} size="sm">
               {rule.name}
-            </Anchor>
+              <Text span c="dimmed" fw={400}>
+                {' '}
+                · v{rule.version}
+              </Text>
+            </Text>
             {rule.trigger_count > 0 && (
               <Tooltip
                 label={`${rule.trigger_count} Active throttle${rule.trigger_count > 1 ? 's' : ''}`}
@@ -123,20 +115,20 @@ export const RulesTableRow = ({
         </Table.Td>
         {showCheckbox && (
           <Table.Td style={{ padding: '8px 12px' }}>
-            <Group gap={2} justify="flex-end" wrap="nowrap">
+            <Group gap={4} justify="flex-end" wrap="nowrap">
               <Tooltip label="Edit" withArrow>
-                <ActionIcon variant="subtle" color="gray" size="sm" onClick={handleEdit}>
-                  <IconPencil size={15} />
+                <ActionIcon variant="subtle" color="blue" size="sm" onClick={handleEdit}>
+                  <IconPencil size={16} />
                 </ActionIcon>
               </Tooltip>
               <Tooltip label="Move" withArrow>
                 <ActionIcon variant="subtle" color="gray" size="sm" onClick={handleMove}>
-                  <IconTransfer size={15} />
+                  <IconTransfer size={16} />
                 </ActionIcon>
               </Tooltip>
               <Tooltip label="Delete" withArrow>
-                <ActionIcon variant="subtle" color="gray" size="sm" onClick={handleDelete}>
-                  <IconTrash size={15} />
+                <ActionIcon variant="subtle" color="red" size="sm" onClick={handleDelete}>
+                  <IconTrash size={16} />
                 </ActionIcon>
               </Tooltip>
             </Group>

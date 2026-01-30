@@ -35,33 +35,68 @@ export const handlers = [
     return HttpResponse.json(testRules)
   }),
 
-  http.get(`${BASE}/rules/:ruleId`, async ({ params }) => {
+  http.get(`${BASE}/rules/:ruleId`, async ({ params, request }) => {
     await delay(50)
     const ruleId = Number(params.ruleId)
+    const url = new URL(request.url)
+    const version = url.searchParams.get('version')
+
     const rule = testRules.find((r) => r.id === ruleId)
     if (!rule) {
       return HttpResponse.json({ message: 'Rule not found' }, { status: 404 })
     }
+
+    // Base body structure
+    const baseBody = {
+      name: rule.name,
+      author: rule.author,
+      regions: rule.regions,
+      inputs: [{ search: { size: 0, query: {} }, index: 'all-telemetry-v2-*' }],
+      actions: [
+        {
+          email: {
+            to: 'test@test.com',
+            subject: 'Test',
+            body: 'Body',
+            format: 'html',
+            templateType: 'handlebars',
+          },
+        },
+      ],
+    }
+
+    // If a specific version is requested, modify the response slightly
+    // to simulate version differences (for testing diff functionality)
+    if (version) {
+      const versionNum = Number(version)
+      return HttpResponse.json({
+        id: rule.id,
+        version: versionNum,
+        body: {
+          ...baseBody,
+          // Add version-specific changes for diff testing
+          ...(versionNum < rule.version && {
+            // Older version has different action
+            actions: [
+              {
+                email: {
+                  to: 'old@test.com',
+                  subject: 'Old Test',
+                  body: 'Old Body',
+                  format: 'text',
+                  templateType: 'text',
+                },
+              },
+            ],
+          }),
+        },
+      })
+    }
+
     return HttpResponse.json({
       id: rule.id,
       version: rule.version,
-      body: {
-        name: rule.name,
-        author: rule.author,
-        regions: rule.regions,
-        inputs: [{ search: { size: 0, query: {} }, index: 'all-telemetry-v2-*' }],
-        actions: [
-          {
-            email: {
-              to: 'test@test.com',
-              subject: 'Test',
-              body: 'Body',
-              format: 'html',
-              templateType: 'handlebars',
-            },
-          },
-        ],
-      },
+      body: baseBody,
     })
   }),
 
