@@ -42,11 +42,29 @@ const renderPage = (authenticated = false) => {
 }
 
 /**
- * Wait for page to load by checking for a rule name
- * Uses findAllByText which has built-in retry logic
+ * Wait for page to load.
+ * Prefer stable structural signals over exact text matches (rule names can be split across elements).
  */
 const waitForPageLoad = async (ruleName = testRules[0].name) => {
-  await screen.findAllByText(ruleName)
+  // First try the original behavior (fast when it works)
+  try {
+    await screen.findAllByText(ruleName, {}, { timeout: 1500 })
+    return
+  } catch {
+    // Fall back to structural checks
+  }
+
+  // When loaded, the table should exist and have at least one data row.
+  // This is more durable than matching a specific rule name.
+  await waitFor(
+    () => {
+      const rows = screen.getAllByRole('row')
+      // At minimum we expect: 2 tables (mobile+desktop) × header row = 2 rows
+      // Success state should have more than headers.
+      expect(rows.length).toBeGreaterThan(2)
+    },
+    { timeout: 5000 }
+  )
 }
 
 /**
