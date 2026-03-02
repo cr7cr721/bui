@@ -169,6 +169,49 @@ export interface Region {
 }
 
 // =============================================================================
+// Runtime Preview / Context Explorer
+// =============================================================================
+
+export type StopStep =
+  | 'context'
+  | 'inputs-precheck'
+  | 'inputs-preview'
+  | 'inputs-execute'
+  | 'transform'
+  | 'condition'
+  | 'trigger'
+  | 'actions-preview'
+
+export interface RuntimeAudit {
+  summary: {
+    success: boolean
+    error?: string
+  }
+}
+
+export interface ActionPreview {
+  index: number
+  preview: {
+    email?: { html?: string; text?: string }
+    'telemetry-alert'?: {
+      description?: string
+      qualifier?: string
+      condition_id?: string
+      severity?: number
+    }
+  }
+}
+
+export interface RuntimePreviewResult {
+  ctx: Record<string, unknown>
+  audit: RuntimeAudit
+  preview: {
+    result?: unknown[]
+    actions?: ActionPreview[]
+  }
+}
+
+// =============================================================================
 // Rule History
 // =============================================================================
 

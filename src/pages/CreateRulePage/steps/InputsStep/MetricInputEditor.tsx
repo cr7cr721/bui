@@ -3,6 +3,7 @@ import { useFormContext, Controller } from 'react-hook-form'
 import Editor from '@monaco-editor/react'
 import type { RuleFormData } from '@/types/rule'
 import type { InputEditorProps } from './constants'
+import { MetricChart } from '../../components/MetricChart'
 
 export const MetricInputEditor = ({ index }: InputEditorProps) => {
   const { register, control } = useFormContext<RuleFormData>()
@@ -26,7 +27,16 @@ export const MetricInputEditor = ({ index }: InputEditorProps) => {
           render={({ field }) => (
             <Select
               label="Unit"
-              data={['seconds', 'minutes', 'hours', 'days', 'weeks', 'months', 'years']}
+              data={[
+                'milliseconds',
+                'seconds',
+                'minutes',
+                'hours',
+                'days',
+                'weeks',
+                'months',
+                'years',
+              ]}
               {...field}
               value={field.value as string}
             />
@@ -111,6 +121,9 @@ export const MetricInputEditor = ({ index }: InputEditorProps) => {
           )}
         />
       </div>
+
+      {/* Metric Chart Preview */}
+      <MetricChart inputIndex={index} />
     </Stack>
   )
 }

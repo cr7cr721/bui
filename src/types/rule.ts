@@ -15,6 +15,7 @@ export interface RuleFormData {
 
   // Inputs
   inputs: InputFormData[]
+  esUpgraded?: boolean
 
   // Transform
   transformCode: string
@@ -60,7 +61,15 @@ export interface StaticInputFormData {
 export interface MetricInputFormData {
   type: 'metric'
   startValue: string
-  startUnit: 'seconds' | 'minutes' | 'hours' | 'days' | 'weeks' | 'months' | 'years'
+  startUnit:
+    | 'milliseconds'
+    | 'seconds'
+    | 'minutes'
+    | 'hours'
+    | 'days'
+    | 'weeks'
+    | 'months'
+    | 'years'
   metricName: string
   tags: string // JSON string for complex tag config
   groupBy: string // JSON string
@@ -89,6 +98,7 @@ export interface EmailActionFormData {
   templateType: 'text' | 'handlebars'
   throttleKey: string
   throttleDuration: string
+  ifCondition?: string
 }
 
 export interface TelemetryActionFormData {
@@ -101,6 +111,7 @@ export interface TelemetryActionFormData {
   format: 'text' | 'handlebars'
   throttleKey: string
   throttleDuration: string
+  ifCondition?: string
 }
 
 export interface ToggleActionFormData {
@@ -109,6 +120,7 @@ export interface ToggleActionFormData {
   enable: boolean
   throttleKey: string
   throttleDuration: string
+  ifCondition?: string
 }
 
 export interface HttpActionFormData {
@@ -119,6 +131,7 @@ export interface HttpActionFormData {
   body: string
   throttleKey: string
   throttleDuration: string
+  ifCondition?: string
 }
 
 // =============================================================================
@@ -171,6 +184,7 @@ export const DEFAULT_EMAIL_ACTION: EmailActionFormData = {
   templateType: 'handlebars',
   throttleKey: '',
   throttleDuration: '',
+  ifCondition: '',
 }
 
 export const DEFAULT_TELEMETRY_ACTION: TelemetryActionFormData = {
@@ -183,6 +197,7 @@ export const DEFAULT_TELEMETRY_ACTION: TelemetryActionFormData = {
   format: 'handlebars',
   throttleKey: '',
   throttleDuration: '',
+  ifCondition: '',
 }
 
 export const DEFAULT_TOGGLE_ACTION: ToggleActionFormData = {
@@ -191,6 +206,7 @@ export const DEFAULT_TOGGLE_ACTION: ToggleActionFormData = {
   enable: true,
   throttleKey: '',
   throttleDuration: '',
+  ifCondition: '',
 }
 
 export const DEFAULT_HTTP_ACTION: HttpActionFormData = {
@@ -201,4 +217,5 @@ export const DEFAULT_HTTP_ACTION: HttpActionFormData = {
   body: '',
   throttleKey: '',
   throttleDuration: '',
+  ifCondition: '',
 }

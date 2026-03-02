@@ -6,6 +6,8 @@ import type {
   CreateRulePayload,
   RuleResponse,
   RuleHistoryEntry,
+  RuntimePreviewResult,
+  StopStep,
 } from '@/types/api'
 
 export const rulesService = {
@@ -31,6 +33,16 @@ export const rulesService = {
     httpClient.post<{ valid: boolean; messages: string[] }>('/validate', ruleJson, undefined, {
       'Content-Type': 'application/json',
     }),
+
+  runRule: (rulePayload: CreateRulePayload, stop: StopStep) =>
+    httpClient.post<RuntimePreviewResult>(
+      '/run',
+      rulePayload,
+      { stop },
+      {
+        'Content-Type': 'application/json',
+      }
+    ),
 
   getAuthors: (groupId: number) =>
     httpClient.get<string[]>('/rules/values/author', { group: groupId }),

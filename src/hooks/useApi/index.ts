@@ -16,6 +16,7 @@ export {
   useValidateRule,
   useEnableRule,
   useDisableRule,
+  useRunRule,
 } from './useRules'
 
 // Groups hooks

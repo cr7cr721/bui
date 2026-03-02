@@ -1,7 +1,7 @@
 // hooks/useApi/useRules.ts
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { rulesService } from '@/services'
-import type { CreateRulePayload } from '@/types/api'
+import type { CreateRulePayload, StopStep } from '@/types/api'
 
 export const useRules = (regions: string, groupId: number) => {
   return useQuery({
@@ -122,5 +122,12 @@ export const useDeleteRules = () => {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['rules'] })
     },
+  })
+}
+
+export const useRunRule = () => {
+  return useMutation({
+    mutationFn: ({ rule, stop }: { rule: CreateRulePayload; stop: StopStep }) =>
+      rulesService.runRule(rule, stop),
   })
 }

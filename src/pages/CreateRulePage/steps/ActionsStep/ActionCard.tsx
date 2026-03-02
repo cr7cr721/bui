@@ -9,6 +9,8 @@ import { TelemetryActionEditor } from './TelemetryActionEditor'
 import { ToggleActionEditor } from './ToggleActionEditor'
 import { HttpActionEditor } from './HttpActionEditor'
 import { ThrottleConfig } from './ThrottleConfig'
+import { ActionIfCondition } from './ActionIfCondition'
+import { ActionPreview } from './ActionPreview'
 
 interface ActionCardProps {
   index: number
@@ -51,6 +53,10 @@ export const ActionCard = ({ index, onRemove }: ActionCardProps) => {
         {action?.type === 'toggle' && <ToggleActionEditor index={index} />}
         {action?.type === 'http' && <HttpActionEditor index={index} />}
         <ThrottleConfig index={index} />
+        <ActionIfCondition index={index} />
+        {(action?.type === 'email' || action?.type === 'telemetry') && (
+          <ActionPreview index={index} />
+        )}
       </Collapse>
     </Card>
   )

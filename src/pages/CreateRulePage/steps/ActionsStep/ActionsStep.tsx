@@ -1,4 +1,4 @@
-import { Stack, Button, Group, Card, Text } from '@mantine/core'
+import { Stack, Button, Group, Card, Text, Grid } from '@mantine/core'
 import { useFormContext, useFieldArray } from 'react-hook-form'
 import type { RuleFormData, ActionFormData } from '@/types/rule'
 import {
@@ -9,6 +9,7 @@ import {
 } from '@/types/rule'
 import { ACTION_TYPES } from './constants'
 import { ActionCard } from './ActionCard'
+import { RuntimeContextExplorer } from '../../components/RuntimeContextExplorer'
 
 export const ActionsStep = () => {
   const { control } = useFormContext<RuleFormData>()
@@ -46,11 +47,27 @@ export const ActionsStep = () => {
           </Text>
         </Card>
       )}
-      <Stack gap="md">
-        {fields.map((field, index) => (
-          <ActionCard key={field.id} index={index} onRemove={() => remove(index)} />
-        ))}
-      </Stack>
+
+      <Grid gutter="md">
+        <Grid.Col span={{ base: 12, md: fields.length > 0 ? 8 : 12 }}>
+          <Stack gap="md">
+            {fields.map((field, index) => (
+              <ActionCard key={field.id} index={index} onRemove={() => remove(index)} />
+            ))}
+          </Stack>
+        </Grid.Col>
+
+        {fields.length > 0 && (
+          <Grid.Col span={{ base: 12, md: 4 }}>
+            <RuntimeContextExplorer
+              stopStep="actions-preview"
+              rootName="ctx"
+              expandLevel={2}
+              height={450}
+            />
+          </Grid.Col>
+        )}
+      </Grid>
     </Stack>
   )
 }
