@@ -9,9 +9,9 @@ export const TransformStep = () => {
   const { control } = useFormContext<RuleFormData>()
 
   return (
-    <Stack gap="lg" mt="xl">
-      <Grid gutter="md">
-        <Grid.Col span={{ base: 12, md: 8 }}>
+    <Grid mt="xl" gutter="md">
+      <Grid.Col span={8}>
+        <Stack gap="lg">
           <Paper withBorder p="md" bg="dark.7">
             <Group gap="xs" mb="sm">
               <IconBulb size={16} />
@@ -51,24 +51,18 @@ export const TransformStep = () => {
               )}
             />
           </Paper>
-        </Grid.Col>
 
-        <Grid.Col span={{ base: 12, md: 4 }}>
-          <RuntimeContextExplorer
-            stopStep="transform"
-            rootName="ctx"
-            expandLevel={1}
-            height={400}
-          />
-        </Grid.Col>
-      </Grid>
-
-      <Paper withBorder p="sm" bg="blue.9">
-        <Text size="sm" c="blue.1">
-          💡 <strong>Tip:</strong> The transform function receives inputs, parameters, and context.
-          Return an object that will be used in the condition step.
-        </Text>
-      </Paper>
-    </Stack>
+          <Paper withBorder p="sm" bg="blue.9">
+            <Text size="sm" c="blue.1">
+              The transform function receives inputs, parameters, and context. Return an object that
+              will be used in the condition step.
+            </Text>
+          </Paper>
+        </Stack>
+      </Grid.Col>
+      <Grid.Col span={4}>
+        <RuntimeContextExplorer stopStep="transform" expandLevel={2} />
+      </Grid.Col>
+    </Grid>
   )
 }

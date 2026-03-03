@@ -21,8 +21,8 @@ export const ActionPreview = ({ index }: ActionEditorProps) => {
       { rule: payload, stop: 'actions-preview' },
       {
         onSuccess: (data) => {
-          if (data.preview?.actions) {
-            const actionPreview = data.preview.actions.find((a) => a.index === index)
+          if (data.preview) {
+            const actionPreview = data.preview.find((a) => a.index === index)
             setPreview(actionPreview || null)
           } else {
             setPreview(null)

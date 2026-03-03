@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback } from 'react'
-import { Paper, Group, Text, Select, Button, Loader, Stack, Alert } from '@mantine/core'
+import { useState, useMemo } from 'react'
+import { Paper, Group, Text, Select, Button, Loader, Stack, Alert, Badge } from '@mantine/core'
 import { IconRefresh, IconChartLine } from '@tabler/icons-react'
 import {
   LineChart,
@@ -11,12 +11,8 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts'
-import { useFormContext } from 'react-hook-form'
-import { useRunRule } from '@/hooks/useApi'
-import { transformFormToPayload } from '@/utils/ruleTransform'
-import type { RuleFormData } from '@/types/rule'
+import { useRulePreview } from '@/pages/CreateRulePage/useRulePreview.ts'
 
-// Color palette for multi-series
 const CHART_COLORS = [
   '#4dabf7',
   '#69db7c',
@@ -35,16 +31,13 @@ interface MetricTimeSeries {
   timestamps: number[]
   values: number[]
 }
-
 interface MetricRegionResult {
   region: string
   series: MetricTimeSeries[]
 }
 
-/** Extract time series data from the raw metric input preview result */
 function extractSeriesFromPreview(inputData: unknown[]): MetricRegionResult[] {
   if (!inputData || !Array.isArray(inputData) || inputData.length === 0) return []
-
   return inputData.map((regionResult: unknown) => {
     const r = regionResult as {
       region?: string
@@ -57,35 +50,36 @@ function extractSeriesFromPreview(inputData: unknown[]): MetricRegionResult[] {
         }>
       }>
     }
-
     const series: MetricTimeSeries[] = []
-
     if (r.queries) {
       r.queries.forEach((q, qi) => {
         if (q.results) {
           q.results.forEach((result) => {
             let name = result.name || 'metric'
-            if (qi > 0) name += `#${qi + 1}`
-
-            // Append group_by info
+            if (qi > 0) name += '#' + String(qi + 1)
             const suffixes: string[] = []
             if (result.group_by) {
               result.group_by.forEach((g) => {
                 if (g.name === 'tag' && g.tags && result.tags) {
                   g.tags.forEach((tagName) => {
                     if (result.tags?.[tagName]) {
-                      suffixes.push(`${tagName}=${result.tags[tagName][0]}`)
+                      suffixes.push(tagName + '=' + result.tags[tagName][0])
                     }
                   })
                 } else if (g.group) {
                   suffixes.push(
-                    `${g.name}:${(g.group as Record<string, unknown>).group_number ?? (g.group as Record<string, unknown>).bin_number ?? ''}`
+                    g.name +
+                      ':' +
+                      String(
+                        (g.group as Record<string, unknown>).group_number ??
+                          (g.group as Record<string, unknown>).bin_number ??
+                          ''
+                      )
                   )
                 }
               })
             }
             if (suffixes.length > 0) name += ' - ' + suffixes.join(' ')
-
             const timestamps: number[] = []
             const values: number[] = []
             if (result.values) {
@@ -94,7 +88,6 @@ function extractSeriesFromPreview(inputData: unknown[]): MetricRegionResult[] {
                 values.push(val)
               })
             }
-
             if (timestamps.length > 0) {
               series.push({ name, timestamps, values })
             }
@@ -102,29 +95,22 @@ function extractSeriesFromPreview(inputData: unknown[]): MetricRegionResult[] {
         }
       })
     }
-
     return { region: r.region || 'default', series }
   })
 }
 
-/** Convert multi-series data into Recharts-friendly format */
 function toRechartsData(
   regionData: MetricRegionResult,
   selectedSeries: string
 ): { data: Array<Record<string, unknown>>; seriesNames: string[] } {
   if (!regionData || regionData.series.length === 0) return { data: [], seriesNames: [] }
-
   const filteredSeries =
     selectedSeries === '*'
-      ? regionData.series.slice(0, 5) // Limit to 5 series for performance
+      ? regionData.series.slice(0, 5)
       : regionData.series.filter((s) => s.name === selectedSeries)
-
-  // Collect all unique timestamps
   const tsSet = new Set<number>()
   filteredSeries.forEach((s) => s.timestamps.forEach((t) => tsSet.add(t)))
   const allTimestamps = Array.from(tsSet).sort((a, b) => a - b)
-
-  // Build rows keyed by timestamp
   const data = allTimestamps.map((ts) => {
     const row: Record<string, unknown> = { timestamp: ts }
     filteredSeries.forEach((s) => {
@@ -133,58 +119,47 @@ function toRechartsData(
     })
     return row
   })
-
   return { data, seriesNames: filteredSeries.map((s) => s.name) }
 }
 
 function formatTime(ts: number): string {
-  const d = new Date(ts)
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  return new Date(ts).toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
 }
-
-// =============================================================================
-// MetricChart Component
-// =============================================================================
 
 interface MetricChartProps {
   inputIndex: number
 }
 
 export const MetricChart = ({ inputIndex }: MetricChartProps) => {
-  const { getValues } = useFormContext<RuleFormData>()
-  const runMutation = useRunRule()
-
-  const [regionResults, setRegionResults] = useState<MetricRegionResult[]>([])
+  const { result, isRunning, error, run, hasCachedData } = useRulePreview({
+    stopStep: 'inputs-execute',
+    autoRun: true,
+    debounceMs: 1200,
+  })
   const [selectedRegion, setSelectedRegion] = useState<string>('')
   const [selectedSeries, setSelectedSeries] = useState<string>('*')
 
-  const handleRunQuery = useCallback(() => {
-    const formData = getValues()
-    const payload = transformFormToPayload(formData)
+  const regionResults = useMemo(() => {
+    if (!result?.ctx?.inputs) return []
+    const inputPreview = (result.ctx.inputs as unknown[])[inputIndex]
+    if (!inputPreview || !Array.isArray(inputPreview)) return []
+    return extractSeriesFromPreview(inputPreview)
+  }, [result, inputIndex])
 
-    runMutation.mutate(
-      { rule: payload, stop: 'inputs-execute' },
-      {
-        onSuccess: (data) => {
-          const inputPreview = data.ctx?.inputs ? (data.ctx.inputs as unknown[])[inputIndex] : null
-
-          if (inputPreview && Array.isArray(inputPreview)) {
-            const results = extractSeriesFromPreview(inputPreview)
-            setRegionResults(results)
-            if (results.length > 0 && !selectedRegion) {
-              setSelectedRegion(results[0].region)
-            }
-          }
-        },
-      }
-    )
-  }, [getValues, runMutation, inputIndex, selectedRegion])
+  const activeRegion = useMemo(() => {
+    if (selectedRegion && regionResults.some((r) => r.region === selectedRegion))
+      return selectedRegion
+    return regionResults.length > 0 ? regionResults[0].region : ''
+  }, [regionResults, selectedRegion])
 
   const currentRegionData = useMemo(
-    () => regionResults.find((r) => r.region === selectedRegion) || null,
-    [regionResults, selectedRegion]
+    () => regionResults.find((r) => r.region === activeRegion) || null,
+    [regionResults, activeRegion]
   )
-
   const { data: chartData, seriesNames } = useMemo(
     () =>
       currentRegionData
@@ -192,7 +167,6 @@ export const MetricChart = ({ inputIndex }: MetricChartProps) => {
         : { data: [], seriesNames: [] },
     [currentRegionData, selectedSeries]
   )
-
   const allSeriesNames = useMemo(
     () => currentRegionData?.series.map((s) => s.name) || [],
     [currentRegionData]
@@ -206,6 +180,16 @@ export const MetricChart = ({ inputIndex }: MetricChartProps) => {
           <Text size="sm" fw={500}>
             Metric Preview
           </Text>
+          {chartData.length > 0 && !isRunning && (
+            <Badge size="xs" variant="dot" color="green">
+              Live
+            </Badge>
+          )}
+          {isRunning && (
+            <Badge size="xs" variant="dot" color="yellow">
+              {hasCachedData ? 'Updating' : 'Loading'}
+            </Badge>
+          )}
         </Group>
         <Group gap="sm">
           {regionResults.length > 0 && (
@@ -214,7 +198,7 @@ export const MetricChart = ({ inputIndex }: MetricChartProps) => {
                 size="xs"
                 w={140}
                 data={regionResults.map((r) => ({ value: r.region, label: r.region }))}
-                value={selectedRegion}
+                value={activeRegion}
                 onChange={(v) => {
                   setSelectedRegion(v || '')
                   setSelectedSeries('*')
@@ -236,23 +220,19 @@ export const MetricChart = ({ inputIndex }: MetricChartProps) => {
             size="xs"
             variant="light"
             color="teal"
-            leftSection={runMutation.isPending ? <Loader size={12} /> : <IconRefresh size={12} />}
-            onClick={handleRunQuery}
-            disabled={runMutation.isPending}
+            leftSection={isRunning ? <Loader size={12} /> : <IconRefresh size={12} />}
+            onClick={run}
+            disabled={isRunning}
           >
-            Run Query
+            {isRunning ? 'Loading...' : 'Refresh'}
           </Button>
         </Group>
       </Group>
-
-      {runMutation.isError && (
+      {error && (
         <Alert color="red" variant="light" mb="sm" p="xs">
-          <Text size="xs">
-            {runMutation.error instanceof Error ? runMutation.error.message : 'Query failed'}
-          </Text>
+          <Text size="xs">{error.message || 'Query failed'}</Text>
         </Alert>
       )}
-
       {chartData.length > 0 ? (
         <ResponsiveContainer width="100%" height={280}>
           <LineChart data={chartData}>
@@ -271,7 +251,7 @@ export const MetricChart = ({ inputIndex }: MetricChartProps) => {
                 borderRadius: 4,
                 fontSize: 12,
               }}
-              labelFormatter={formatTime}
+              labelFormatter={(label) => formatTime(Number(label))}
             />
             {seriesNames.length > 1 && <Legend wrapperStyle={{ fontSize: 11 }} />}
             {seriesNames.map((name, i) => (
@@ -287,10 +267,18 @@ export const MetricChart = ({ inputIndex }: MetricChartProps) => {
             ))}
           </LineChart>
         </ResponsiveContainer>
+      ) : isRunning ? (
+        <Stack align="center" justify="center" h={100}>
+          <Loader size="sm" />
+          <Text size="xs" c="dimmed">
+            Loading metric data...
+          </Text>
+        </Stack>
       ) : (
         <Stack align="center" justify="center" h={100}>
+          <Loader size="xs" color="dimmed" />
           <Text size="xs" c="dimmed" ta="center">
-            Click <strong>Run Query</strong> to preview metric data as a chart.
+            Initializing metric preview...
           </Text>
         </Stack>
       )}

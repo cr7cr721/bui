@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
 import {
   Paper,
   Text,
@@ -12,6 +12,7 @@ import {
   Collapse,
   UnstyledButton,
   Box,
+  Badge,
 } from '@mantine/core'
 import {
   IconRefresh,
@@ -19,11 +20,8 @@ import {
   IconChevronRight,
   IconChevronDown,
 } from '@tabler/icons-react'
-import { useFormContext } from 'react-hook-form'
-import { useRunRule } from '@/hooks/useApi'
-import { transformFormToPayload } from '@/utils/ruleTransform'
-import type { RuleFormData } from '@/types/rule'
-import type { StopStep, RuntimePreviewResult } from '@/types/api'
+import { useRulePreview } from '../useRulePreview'
+import type { StopStep } from '@/types/api'
 
 // =============================================================================
 // JSON Tree Viewer (replacement for react-inspector)
@@ -92,7 +90,7 @@ const JsonNode = ({ name, data, depth, defaultExpanded }: JsonNodeProps) => {
   }
 
   if (typeof data === 'string') {
-    const displayValue = data.length > 120 ? data.slice(0, 120) + '…' : data
+    const displayValue = data.length > 120 ? data.slice(0, 120) + '\u2026' : data
     return (
       <Group gap={4} ml={depth * 16} wrap="nowrap" align="flex-start">
         <Text size="xs" ff="monospace" c="dimmed" style={{ flexShrink: 0 }}>
@@ -191,15 +189,10 @@ const JsonNode = ({ name, data, depth, defaultExpanded }: JsonNodeProps) => {
 // =============================================================================
 
 interface RuntimeContextExplorerProps {
-  /** The stop step to execute up to */
   stopStep: StopStep
-  /** Root name label for the context tree */
   rootName?: string
-  /** Default expansion depth */
   expandLevel?: number
-  /** Optional selector function to extract a subtree from ctx */
   ctxSelector?: (ctx: Record<string, unknown>) => unknown
-  /** Height of the scroll area */
   height?: number
 }
 
@@ -210,47 +203,42 @@ export const RuntimeContextExplorer = ({
   ctxSelector,
   height = 350,
 }: RuntimeContextExplorerProps) => {
-  const { getValues } = useFormContext<RuleFormData>()
-  const runMutation = useRunRule()
-  const [previewResult, setPreviewResult] = useState<RuntimePreviewResult | null>(null)
+  const { result, isRunning, error, run, hasCachedData } = useRulePreview({
+    stopStep,
+    autoRun: true,
+    debounceMs: 1200,
+  })
 
-  const handleRun = useCallback(() => {
-    const formData = getValues()
-    const payload = transformFormToPayload(formData)
-
-    runMutation.mutate(
-      { rule: payload, stop: stopStep },
-      {
-        onSuccess: (data) => {
-          setPreviewResult(data)
-        },
-      }
-    )
-  }, [getValues, runMutation, stopStep])
-
-  const ctxDisplay = previewResult?.ctx
-    ? ctxSelector
-      ? ctxSelector(previewResult.ctx)
-      : previewResult.ctx
-    : null
-
-  const hasRuntimeError = previewResult?.audit && !previewResult.audit.summary.success
+  const ctxDisplay = result?.ctx ? (ctxSelector ? ctxSelector(result.ctx) : result.ctx) : null
+  const hasRuntimeError = result?.audit && !result.audit.summary.success
 
   return (
     <Paper withBorder p="sm" bg="dark.8" style={{ minWidth: 280 }}>
       <Group justify="space-between" mb="xs">
-        <Text size="sm" fw={600} c="dimmed">
-          Runtime Context
-        </Text>
+        <Group gap="xs">
+          <Text size="sm" fw={600} c="dimmed">
+            Runtime Context
+          </Text>
+          {hasCachedData && !isRunning && (
+            <Badge size="xs" variant="dot" color="green">
+              Live
+            </Badge>
+          )}
+          {isRunning && (
+            <Badge size="xs" variant="dot" color="yellow">
+              {hasCachedData ? 'Updating' : 'Loading'}
+            </Badge>
+          )}
+        </Group>
         <Button
           size="compact-xs"
           variant="light"
-          leftSection={runMutation.isPending ? <Loader size={12} /> : <IconRefresh size={12} />}
-          onClick={handleRun}
-          disabled={runMutation.isPending}
+          leftSection={isRunning ? <Loader size={12} /> : <IconRefresh size={12} />}
+          onClick={run}
+          disabled={isRunning}
           color="teal"
         >
-          {runMutation.isPending ? 'Running…' : 'Run'}
+          {isRunning ? 'Running\u2026' : 'Refresh'}
         </Button>
       </Group>
 
@@ -264,29 +252,32 @@ export const RuntimeContextExplorer = ({
           title="Runtime Error"
         >
           <Code block style={{ fontSize: 11, maxHeight: 100, overflow: 'auto' }}>
-            {previewResult?.audit?.summary?.error?.slice(0, 250)}
+            {result?.audit?.summary?.error?.slice(0, 250)}
           </Code>
         </Alert>
       )}
 
-      {runMutation.isError && (
+      {error && (
         <Alert color="red" variant="light" mb="xs" p="xs">
-          <Text size="xs">
-            {runMutation.error instanceof Error
-              ? runMutation.error.message
-              : 'Failed to execute rule preview'}
-          </Text>
+          <Text size="xs">{error.message || 'Failed to execute rule preview'}</Text>
         </Alert>
       )}
 
       <ScrollArea h={height} type="auto">
         {ctxDisplay ? (
           <JsonNode name={rootName} data={ctxDisplay} depth={0} defaultExpanded={expandLevel} />
+        ) : isRunning ? (
+          <Stack align="center" justify="center" h={120}>
+            <Loader size="sm" />
+            <Text size="xs" c="dimmed">
+              Executing rule preview...
+            </Text>
+          </Stack>
         ) : (
           <Stack align="center" justify="center" h={120}>
+            <Loader size="xs" color="dimmed" />
             <Text size="xs" c="dimmed" ta="center">
-              Click <strong>Run</strong> to execute the rule and inspect the runtime context at this
-              step.
+              Initializing preview...
             </Text>
           </Stack>
         )}

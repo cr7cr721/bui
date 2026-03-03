@@ -15,7 +15,6 @@ export interface RuleFormData {
 
   // Inputs
   inputs: InputFormData[]
-  esUpgraded?: boolean
 
   // Transform
   transformCode: string
@@ -25,6 +24,9 @@ export interface RuleFormData {
 
   // Actions
   actions: ActionFormData[]
+
+  // Flags
+  esUpgraded?: boolean
 }
 
 // =============================================================================
@@ -60,6 +62,7 @@ export interface StaticInputFormData {
 
 export interface MetricInputFormData {
   type: 'metric'
+  programName: string // Chromie program name (e.g. "gdp_cost")
   startValue: string
   startUnit:
     | 'milliseconds'
@@ -166,6 +169,7 @@ export const DEFAULT_STATIC_INPUT: StaticInputFormData = {
 
 export const DEFAULT_METRIC_INPUT: MetricInputFormData = {
   type: 'metric',
+  programName: '',
   startValue: '10',
   startUnit: 'minutes',
   metricName: '',
@@ -184,7 +188,6 @@ export const DEFAULT_EMAIL_ACTION: EmailActionFormData = {
   templateType: 'handlebars',
   throttleKey: '',
   throttleDuration: '',
-  ifCondition: '',
 }
 
 export const DEFAULT_TELEMETRY_ACTION: TelemetryActionFormData = {
@@ -197,7 +200,6 @@ export const DEFAULT_TELEMETRY_ACTION: TelemetryActionFormData = {
   format: 'handlebars',
   throttleKey: '',
   throttleDuration: '',
-  ifCondition: '',
 }
 
 export const DEFAULT_TOGGLE_ACTION: ToggleActionFormData = {
@@ -206,7 +208,6 @@ export const DEFAULT_TOGGLE_ACTION: ToggleActionFormData = {
   enable: true,
   throttleKey: '',
   throttleDuration: '',
-  ifCondition: '',
 }
 
 export const DEFAULT_HTTP_ACTION: HttpActionFormData = {
@@ -217,5 +218,4 @@ export const DEFAULT_HTTP_ACTION: HttpActionFormData = {
   body: '',
   throttleKey: '',
   throttleDuration: '',
-  ifCondition: '',
 }

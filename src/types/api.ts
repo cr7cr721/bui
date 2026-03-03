@@ -81,11 +81,14 @@ export interface CreateRulePayload {
     interval?: string
     cron?: string
   }
+  params?: Record<string, unknown>
+  /** @deprecated Use `params` instead. Kept for backward compatibility with legacy payloads. */
   parameters?: Record<string, unknown>
   inputs: RuleInput[]
   transform?: string
   condition?: string
   actions: RuleAction[]
+  es_upgraded?: boolean
 }
 
 // Input types
@@ -169,7 +172,7 @@ export interface Region {
 }
 
 // =============================================================================
-// Runtime Preview / Context Explorer
+// Runtime Preview (Rule Execution)
 // =============================================================================
 
 export type StopStep =
@@ -186,13 +189,25 @@ export interface RuntimeAudit {
   summary: {
     success: boolean
     error?: string
+    duration_ms?: number
   }
+  steps?: Array<{
+    name: string
+    success: boolean
+    error?: string
+    duration_ms?: number
+  }>
 }
 
 export interface ActionPreview {
-  index: number
-  preview: {
-    email?: { html?: string; text?: string }
+  type: string
+  index?: number
+  payload: Record<string, unknown>
+  preview?: {
+    email?: {
+      html?: string
+      text?: string
+    }
     'telemetry-alert'?: {
       description?: string
       qualifier?: string
@@ -205,10 +220,7 @@ export interface ActionPreview {
 export interface RuntimePreviewResult {
   ctx: Record<string, unknown>
   audit: RuntimeAudit
-  preview: {
-    result?: unknown[]
-    actions?: ActionPreview[]
-  }
+  preview?: ActionPreview[]
 }
 
 // =============================================================================

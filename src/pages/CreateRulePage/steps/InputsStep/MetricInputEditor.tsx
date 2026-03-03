@@ -11,6 +11,11 @@ export const MetricInputEditor = ({ index }: InputEditorProps) => {
   return (
     <Stack gap="md">
       <TextInput
+        label="Program Name"
+        placeholder="gdp_cost"
+        {...register(`inputs.${index}.programName` as const)}
+      />
+      <TextInput
         label="Metric Name"
         placeholder="my.metric.name"
         {...register(`inputs.${index}.metricName` as const)}

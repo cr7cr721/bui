@@ -780,7 +780,7 @@ describe('ruleTransform', () => {
 
       const payload = transformFormToPayload(formData)
 
-      expect(payload.parameters).toEqual({
+      expect(payload.params).toEqual({
         threshold: 100,
         enabled: true,
         config: { nested: 'value' },
@@ -798,7 +798,7 @@ describe('ruleTransform', () => {
 
       const payload = transformFormToPayload(formData)
 
-      expect(payload.parameters).toEqual({ valid: 'kept' })
+      expect(payload.params).toEqual({ valid: 'kept' })
     })
 
     it('excludes parameters section when empty', () => {
@@ -806,7 +806,7 @@ describe('ruleTransform', () => {
 
       const payload = transformFormToPayload(formData)
 
-      expect(payload.parameters).toBeUndefined()
+      expect(payload.params).toBeUndefined()
     })
 
     describe('input transformations', () => {
@@ -921,6 +921,7 @@ describe('ruleTransform', () => {
           inputs: [
             {
               type: 'metric' as const,
+              programName: '',
               startValue: '10',
               startUnit: 'minutes' as const,
               metricName: 'my.metric.name',

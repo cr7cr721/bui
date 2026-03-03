@@ -28,7 +28,6 @@ export const useRuleForm = () => {
       scheduleValue: '',
       parameters: [],
       inputs: [],
-      esUpgraded: false,
       transformCode: INITIAL_TRANSFORM,
       conditionCode: INITIAL_CONDITION,
       actions: [],

@@ -38,12 +38,13 @@ export const transformPayloadToForm = (payload: CreateRulePayload): RuleFormData
   }
 
   // Transform parameters
-  const parameters = payload.parameters
-    ? Object.entries(payload.parameters).map(([key, value]) => ({
-        key,
-        value: typeof value === 'string' ? value : JSON.stringify(value),
-      }))
-    : []
+  const parameters =
+    payload.params || payload.parameters
+      ? Object.entries(payload.params || payload.parameters || {}).map(([key, value]) => ({
+          key,
+          value: typeof value === 'string' ? value : JSON.stringify(value),
+        }))
+      : []
 
   return {
     name: payload.name,
@@ -56,7 +57,7 @@ export const transformPayloadToForm = (payload: CreateRulePayload): RuleFormData
     transformCode: payload.transform || INITIAL_TRANSFORM,
     conditionCode: payload.condition || INITIAL_CONDITION,
     actions: (payload.actions || []).map(reverseTransformAction),
-    esUpgraded: !!(payload as Record<string, unknown>).es_upgraded,
+    esUpgraded: payload.es_upgraded || false,
   }
 }
 
@@ -130,12 +131,19 @@ const reverseTransformStaticInput = (input: {
 const reverseTransformMetricInput = (input: {
   metric: {
     start_relative: { value: string; unit: string }
-    metrics: Array<{ name?: string; tags?: unknown; group_by?: unknown; aggregators?: unknown }>
+    metrics: Array<{
+      name?: string
+      program?: string
+      tags?: unknown
+      group_by?: unknown
+      aggregators?: unknown
+    }>
   }
 }): MetricInputFormData => {
   const metric = input.metric.metrics?.[0] || {}
   return {
     type: 'metric',
+    programName: metric.program || '',
     startValue: input.metric.start_relative?.value || '10',
     startUnit: (input.metric.start_relative?.unit as MetricInputFormData['startUnit']) || 'minutes',
     metricName: metric.name || '',
@@ -150,7 +158,6 @@ const reverseTransformMetricInput = (input: {
  */
 const reverseTransformAction = (action: RuleAction): ActionFormData => {
   const throttle = (action as { throttle?: ThrottleConfig }).throttle
-  const ifScript = (action as { if?: string }).if
 
   if ('email' in action) {
     return reverseTransformEmailAction(
@@ -164,7 +171,6 @@ const reverseTransformAction = (action: RuleAction): ActionFormData => {
           templateType: string
         }
         throttle?: ThrottleConfig
-        if?: string
       }
     )
   }
@@ -180,7 +186,6 @@ const reverseTransformAction = (action: RuleAction): ActionFormData => {
           format?: string
         }
         throttle?: ThrottleConfig
-        if?: string
       }
     )
   }
@@ -189,7 +194,6 @@ const reverseTransformAction = (action: RuleAction): ActionFormData => {
       action as {
         'toggle-watch': { id: string | number; enable: boolean }
         throttle?: ThrottleConfig
-        if?: string
       }
     )
   }
@@ -198,7 +202,6 @@ const reverseTransformAction = (action: RuleAction): ActionFormData => {
       action as {
         request: { url: string; method: string; json?: boolean; body?: unknown }
         throttle?: ThrottleConfig
-        if?: string
       }
     )
   }
@@ -211,7 +214,6 @@ const reverseTransformAction = (action: RuleAction): ActionFormData => {
     body: JSON.stringify(action, null, 2),
     throttleKey: throttle?.key || '',
     throttleDuration: throttle?.duration || '',
-    ifCondition: ifScript || '',
   }
 }
 
@@ -225,7 +227,6 @@ const reverseTransformEmailAction = (action: {
     templateType: string
   }
   throttle?: ThrottleConfig
-  if?: string
 }): EmailActionFormData => ({
   type: 'email',
   to: action.email.to || '',
@@ -236,7 +237,6 @@ const reverseTransformEmailAction = (action: {
   templateType: (action.email.templateType as 'text' | 'handlebars') || 'handlebars',
   throttleKey: action.throttle?.key || '',
   throttleDuration: action.throttle?.duration || '',
-  ifCondition: action.if || '',
 })
 
 const reverseTransformTelemetryAction = (action: {
@@ -249,7 +249,6 @@ const reverseTransformTelemetryAction = (action: {
     format?: string
   }
   throttle?: ThrottleConfig
-  if?: string
 }): TelemetryActionFormData => ({
   type: 'telemetry',
   summary: action['telemetry-alert'].summary || '',
@@ -260,26 +259,22 @@ const reverseTransformTelemetryAction = (action: {
   format: (action['telemetry-alert'].format as 'text' | 'handlebars') || 'handlebars',
   throttleKey: action.throttle?.key || '',
   throttleDuration: action.throttle?.duration || '',
-  ifCondition: action.if || '',
 })
 
 const reverseTransformToggleAction = (action: {
   'toggle-watch': { id: string | number; enable: boolean }
   throttle?: ThrottleConfig
-  if?: string
 }): ToggleActionFormData => ({
   type: 'toggle',
   ruleId: String(action['toggle-watch'].id || ''),
   enable: action['toggle-watch'].enable ?? true,
   throttleKey: action.throttle?.key || '',
   throttleDuration: action.throttle?.duration || '',
-  ifCondition: action.if || '',
 })
 
 const reverseTransformHttpAction = (action: {
   request: { url: string; method: string; json?: boolean; body?: unknown }
   throttle?: ThrottleConfig
-  if?: string
 }): HttpActionFormData => ({
   type: 'http',
   url: action.request.url || '',
@@ -292,7 +287,6 @@ const reverseTransformHttpAction = (action: {
     : '',
   throttleKey: action.throttle?.key || '',
   throttleDuration: action.throttle?.duration || '',
-  ifCondition: action.if || '',
 })
 
 // =============================================================================
@@ -320,7 +314,7 @@ export const transformFormToPayload = (formData: RuleFormData): CreateRulePayloa
 
   // Add parameters if any
   if (formData.parameters.length > 0) {
-    payload.parameters = formData.parameters.reduce(
+    payload.params = formData.parameters.reduce(
       (acc, param) => {
         if (param.key) {
           // Try to parse value as JSON, otherwise use as string
@@ -350,7 +344,7 @@ export const transformFormToPayload = (formData: RuleFormData): CreateRulePayloa
 
   // Add es_upgraded flag if set
   if (formData.esUpgraded) {
-    ;(payload as Record<string, unknown>).es_upgraded = true
+    payload.es_upgraded = true
   }
 
   return payload
@@ -422,6 +416,7 @@ const transformMetricInput = (input: MetricInputFormData): RuleInput => {
     metrics: [
       {
         name: input.metricName,
+        ...(input.programName ? { program: input.programName } : {}),
         ...(input.tags && input.tags !== '{}' ? { tags: JSON.parse(input.tags) } : {}),
         ...(input.groupBy && input.groupBy !== '[]' ? { group_by: JSON.parse(input.groupBy) } : {}),
         ...(input.aggregators && input.aggregators !== '[]'
@@ -470,10 +465,6 @@ const transformEmailAction = (action: EmailActionFormData): RuleAction => {
     if (action.throttleDuration) result.throttle.duration = action.throttleDuration
   }
 
-  if (action.ifCondition) {
-    ;(result as Record<string, unknown>).if = action.ifCondition
-  }
-
   return result
 }
 
@@ -495,10 +486,6 @@ const transformTelemetryAction = (action: TelemetryActionFormData): RuleAction =
     if (action.throttleDuration) result.throttle.duration = action.throttleDuration
   }
 
-  if (action.ifCondition) {
-    ;(result as Record<string, unknown>).if = action.ifCondition
-  }
-
   return result
 }
 
@@ -514,10 +501,6 @@ const transformToggleAction = (action: ToggleActionFormData): RuleAction => {
     result.throttle = {}
     if (action.throttleKey) result.throttle.key = action.throttleKey
     if (action.throttleDuration) result.throttle.duration = action.throttleDuration
-  }
-
-  if (action.ifCondition) {
-    ;(result as Record<string, unknown>).if = action.ifCondition
   }
 
   return result
@@ -551,10 +534,6 @@ const transformHttpAction = (action: HttpActionFormData): RuleAction => {
     result.throttle = {}
     if (action.throttleKey) result.throttle.key = action.throttleKey
     if (action.throttleDuration) result.throttle.duration = action.throttleDuration
-  }
-
-  if (action.ifCondition) {
-    ;(result as Record<string, unknown>).if = action.ifCondition
   }
 
   return result
