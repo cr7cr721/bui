@@ -1,0 +1,87 @@
+name: PR Review Agent
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+    branches: [development]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+concurrency:
+  group: pr-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: arc-runners
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate review script exists
+        run: test -f .github/scripts/pr-review.mjs
+
+      - name: Skip if already reviewed for this commit
+        id: dedupe
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_API_URL: ${{ github.api_url }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          reviews_json=$(curl -s \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "$GH_API_URL/repos/$REPO/pulls/$PR_NUMBER/reviews?per_page=100")
+          if echo "$reviews_json" | grep -q "\"commit_id\":\"$COMMIT_SHA\""; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Already reviewed commit $COMMIT_SHA, skipping."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fetch PR diff
+        if: steps.dedupe.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl -s \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github.v3.diff" \
+            "${{ github.api_url }}/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}" \
+            > /tmp/pr.diff
+
+      - name: Collect specs
+        if: steps.dedupe.outputs.skip != 'true'
+        run: |
+          if [ -d "docs/specs" ]; then
+            find docs/specs -type f \( -name '*.md' -o -name '*.txt' \) -exec cat {} + > /tmp/specs.txt
+          else
+            echo "No specs found." > /tmp/specs.txt
+          fi
+
+      - name: Run LLM review
+        if: steps.dedupe.outputs.skip != 'true'
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_API_URL: ${{ github.api_url }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node .github/scripts/pr-review.mjs
