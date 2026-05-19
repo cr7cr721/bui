@@ -74,11 +74,38 @@ jobs:
             echo "No specs found." > /tmp/specs.txt
           fi
 
+      - name: Validate LLM env
+        if: steps.dedupe.outputs.skip != 'true'
+        shell: bash
+        env:
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          AZURE_OPENAI_ENDPOINT: ${{ vars.AZURE_OPENAI_ENDPOINT }}
+          AZURE_OPENAI_API_VERSION: ${{ vars.AZURE_OPENAI_API_VERSION }}
+          AZURE_OPENAI_DEPLOYMENT: ${{ vars.AZURE_OPENAI_DEPLOYMENT }}
+        run: |
+          set -euo pipefail
+
+          missing=0
+          for k in AZURE_OPENAI_API_KEY AZURE_OPENAI_ENDPOINT AZURE_OPENAI_API_VERSION AZURE_OPENAI_DEPLOYMENT; do
+            if [ -z "${!k:-}" ]; then
+              echo "Missing required Azure config: $k"
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -eq 1 ]; then
+            exit 1
+          fi
+
+          echo "Azure OpenAI env looks good."
+
       - name: Run LLM review
         if: steps.dedupe.outputs.skip != 'true'
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          AZURE_OPENAI_ENDPOINT: ${{ vars.AZURE_OPENAI_ENDPOINT }}
+          AZURE_OPENAI_API_VERSION: ${{ vars.AZURE_OPENAI_API_VERSION }}
+          AZURE_OPENAI_DEPLOYMENT: ${{ vars.AZURE_OPENAI_DEPLOYMENT }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_API_URL: ${{ github.api_url }}
           REPO: ${{ github.repository }}
