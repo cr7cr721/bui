@@ -1,8 +1,10 @@
 import { readFileSync } from "fs";
 
 const {
-  OPENAI_API_KEY,
-  OPENAI_BASE_URL = "https://api.openai.com/v1",
+  AZURE_OPENAI_API_KEY,
+  AZURE_OPENAI_ENDPOINT,
+  AZURE_OPENAI_DEPLOYMENT,
+  AZURE_OPENAI_API_VERSION = "2024-10-21",
   GH_TOKEN,
   GH_API_URL,
   REPO,
@@ -54,7 +56,9 @@ async function postIssueComment(body) {
   }
 }
 
-required("OPENAI_API_KEY", OPENAI_API_KEY);
+required("AZURE_OPENAI_API_KEY", AZURE_OPENAI_API_KEY);
+required("AZURE_OPENAI_ENDPOINT", AZURE_OPENAI_ENDPOINT);
+required("AZURE_OPENAI_DEPLOYMENT", AZURE_OPENAI_DEPLOYMENT);
 required("GH_TOKEN", GH_TOKEN);
 required("GH_API_URL", GH_API_URL);
 required("REPO", REPO);
@@ -110,14 +114,18 @@ ${truncatedDiff}
 
 Review this PR and return JSON only.`;
 
-const response = await fetch(`${OPENAI_BASE_URL}/chat/completions`, {
+const endpointUrl = new URL(AZURE_OPENAI_ENDPOINT);
+const chatUrl = new URL(endpointUrl.origin);
+chatUrl.pathname = `/openai/deployments/${encodeURIComponent(AZURE_OPENAI_DEPLOYMENT)}/chat/completions`;
+chatUrl.searchParams.set("api-version", AZURE_OPENAI_API_VERSION);
+
+const response = await fetch(chatUrl.toString(), {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${OPENAI_API_KEY}`,
+    "api-key": AZURE_OPENAI_API_KEY,
   },
   body: JSON.stringify({
-    model: "gpt-4o",
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
