@@ -1,18 +1,16 @@
 import { readFileSync } from "fs";
 
-function getEnv(name, fallback = "") {
-  return process.env[name]?.trim() || fallback;
-}
-
-const AZURE_OPENAI_API_KEY = getEnv("AZURE_OPENAI_API_KEY");
-const AZURE_OPENAI_ENDPOINT = getEnv("AZURE_OPENAI_ENDPOINT");
-const AZURE_OPENAI_DEPLOYMENT = getEnv("AZURE_OPENAI_DEPLOYMENT");
-const AZURE_OPENAI_API_VERSION = getEnv("AZURE_OPENAI_API_VERSION", "2024-10-21");
-const GH_TOKEN = getEnv("GH_TOKEN");
-const GH_API_URL = getEnv("GH_API_URL");
-const REPO = getEnv("REPO");
-const PR_NUMBER = getEnv("PR_NUMBER");
-const COMMIT_SHA = getEnv("COMMIT_SHA");
+const {
+  AZURE_OPENAI_API_KEY,
+  AZURE_OPENAI_ENDPOINT,
+  AZURE_OPENAI_API_VERSION,
+  AZURE_OPENAI_DEPLOYMENT,
+  GH_TOKEN,
+  GH_API_URL,
+  REPO,
+  PR_NUMBER,
+  COMMIT_SHA,
+} = process.env;
 
 function required(name, value) {
   if (!value) {
@@ -60,6 +58,7 @@ async function postIssueComment(body) {
 
 required("AZURE_OPENAI_API_KEY", AZURE_OPENAI_API_KEY);
 required("AZURE_OPENAI_ENDPOINT", AZURE_OPENAI_ENDPOINT);
+required("AZURE_OPENAI_API_VERSION", AZURE_OPENAI_API_VERSION);
 required("AZURE_OPENAI_DEPLOYMENT", AZURE_OPENAI_DEPLOYMENT);
 required("GH_TOKEN", GH_TOKEN);
 required("GH_API_URL", GH_API_URL);
@@ -116,12 +115,10 @@ ${truncatedDiff}
 
 Review this PR and return JSON only.`;
 
-const endpointUrl = new URL(AZURE_OPENAI_ENDPOINT);
-const chatUrl = new URL(endpointUrl.origin);
-chatUrl.pathname = `/openai/deployments/${encodeURIComponent(AZURE_OPENAI_DEPLOYMENT)}/chat/completions`;
-chatUrl.searchParams.set("api-version", AZURE_OPENAI_API_VERSION);
+const azureBase = AZURE_OPENAI_ENDPOINT.replace(/\/$/, "");
+const azureUrl = `${azureBase}/openai/deployments/${AZURE_OPENAI_DEPLOYMENT}/chat/completions?api-version=${encodeURIComponent(AZURE_OPENAI_API_VERSION)}`;
 
-const response = await fetch(chatUrl.toString(), {
+const response = await fetch(azureUrl, {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
