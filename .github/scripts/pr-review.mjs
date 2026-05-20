@@ -1,16 +1,18 @@
 import { readFileSync } from "fs";
 
-const {
-  AZURE_OPENAI_API_KEY,
-  AZURE_OPENAI_ENDPOINT,
-  AZURE_OPENAI_DEPLOYMENT,
-  AZURE_OPENAI_API_VERSION = "2024-10-21",
-  GH_TOKEN,
-  GH_API_URL,
-  REPO,
-  PR_NUMBER,
-  COMMIT_SHA,
-} = process.env;
+function getEnv(name, fallback = "") {
+  return process.env[name]?.trim() || fallback;
+}
+
+const AZURE_OPENAI_API_KEY = getEnv("AZURE_OPENAI_API_KEY");
+const AZURE_OPENAI_ENDPOINT = getEnv("AZURE_OPENAI_ENDPOINT");
+const AZURE_OPENAI_DEPLOYMENT = getEnv("AZURE_OPENAI_DEPLOYMENT");
+const AZURE_OPENAI_API_VERSION = getEnv("AZURE_OPENAI_API_VERSION", "2024-10-21");
+const GH_TOKEN = getEnv("GH_TOKEN");
+const GH_API_URL = getEnv("GH_API_URL");
+const REPO = getEnv("REPO");
+const PR_NUMBER = getEnv("PR_NUMBER");
+const COMMIT_SHA = getEnv("COMMIT_SHA");
 
 function required(name, value) {
   if (!value) {
