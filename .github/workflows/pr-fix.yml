@@ -1,0 +1,121 @@
+name: PR Fix Agent
+
+on:
+  workflow_run:
+    workflows: ["PR Review Agent"]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: pr-fix-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: true
+
+jobs:
+  fix:
+    name: Apply AI review fixes
+    # Only run when:
+    # - the review workflow succeeded (it posted comments)
+    # - triggered from a pull_request event (not a manual dispatch)
+    # - the PR targets our development branch
+    if: |
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.pull_requests[0].base.ref == 'development'
+    runs-on: arc-runners
+
+    steps:
+      - name: Resolve PR number
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_API_URL: ${{ github.api_url }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          # Fast path from payload
+          PR_NUMBER_HINT: ${{ github.event.workflow_run.pull_requests[0].number }}
+        run: |
+          set -euo pipefail
+          PR_NUMBER="$PR_NUMBER_HINT"
+
+          # Fallback: search open PRs by head SHA if payload was empty
+          if [ -z "$PR_NUMBER" ] || [ "$PR_NUMBER" = "0" ]; then
+            echo "Payload PR number missing, searching by head SHA..."
+            PR_NUMBER=$(curl -s \
+              -H "Authorization: token $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "$GH_API_URL/repos/$REPO/pulls?state=open&per_page=50" \
+              | jq -r --arg sha "$HEAD_SHA" '.[] | select(.head.sha == $sha) | .number' | head -1)
+          fi
+
+          if [ -z "$PR_NUMBER" ] || [ "$PR_NUMBER" = "null" ]; then
+            echo "Could not resolve PR number for SHA $HEAD_SHA — skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Resolved PR #$PR_NUMBER"
+            echo "number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout PR head branch
+        if: steps.pr.outputs.skip != 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.workflow_run.head_repository.full_name }}
+          ref: ${{ github.event.workflow_run.head_branch }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Skip if already fixed this reviewed commit
+        if: steps.pr.outputs.skip != 'true'
+        id: dedupe
+        env:
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          # Check whether a previous run already pushed an ai-fix for this exact SHA
+          if git log --oneline --all | grep -q "\[ai-fix source=$HEAD_SHA\]"; then
+            echo "Already applied AI fix for commit $HEAD_SHA — skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Python
+        if: steps.pr.outputs.skip != 'true' && steps.dedupe.outputs.skip != 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install aider
+        if: steps.pr.outputs.skip != 'true' && steps.dedupe.outputs.skip != 'true'
+        run: pip install --quiet aider-chat
+
+      - name: Set up Node.js
+        if: steps.pr.outputs.skip != 'true' && steps.dedupe.outputs.skip != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Configure git identity
+        if: steps.pr.outputs.skip != 'true' && steps.dedupe.outputs.skip != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Run AI fix agent
+        if: steps.pr.outputs.skip != 'true' && steps.dedupe.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_API_URL: ${{ github.api_url }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          AZURE_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          AZURE_API_BASE: ${{ vars.AZURE_OPENAI_ENDPOINT }}
+          AZURE_API_VERSION: ${{ vars.AZURE_OPENAI_API_VERSION }}
+          AZURE_OPENAI_DEPLOYMENT: ${{ vars.AZURE_OPENAI_DEPLOYMENT }}
+        run: node .github/scripts/pr-fix.mjs
