@@ -112,3 +112,16 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
         run: node .github/scripts/pr-review.mjs
+
+      - name: Trigger fix agent
+        if: steps.dedupe.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_HOST: ghosthub.corp.blizzard.net
+        run: |
+          gh workflow run pr-fix.yml \
+            --repo "${{ github.repository }}" \
+            --ref "${{ github.head_ref }}" \
+            --field pr_number="${{ github.event.pull_request.number }}" \
+            --field head_sha="${{ github.event.pull_request.head.sha }}" \
+            --field head_branch="${{ github.head_ref }}"
