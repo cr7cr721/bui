@@ -1,4 +1,4 @@
-import { readFileSync } from "fs";
+import { readFileSync, writeFileSync } from "fs";
 
 const {
   AZURE_OPENAI_API_KEY,
@@ -159,6 +159,7 @@ try {
 }
 
 console.log(`Found ${findings.length} review finding(s).`);
+writeFileSync("/tmp/review-findings.json", JSON.stringify({ findings }, null, 2), "utf-8");
 
 if (findings.length === 0) {
   console.log("No findings, skipping comment.");

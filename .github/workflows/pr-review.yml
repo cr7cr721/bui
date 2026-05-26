@@ -24,13 +24,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
       - name: Validate review script exists
         run: test -f .github/scripts/pr-review.mjs
+
+      - name: Validate context builder exists
+        run: test -f .github/scripts/build-context.mjs
 
       - name: Skip if already reviewed for this commit
         id: dedupe
@@ -54,25 +52,13 @@ jobs:
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Fetch PR diff
+      - name: Build context inputs
         if: steps.dedupe.outputs.skip != 'true'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          curl -s \
-            -H "Authorization: token $GH_TOKEN" \
-            -H "Accept: application/vnd.github.v3.diff" \
-            "${{ github.api_url }}/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}" \
-            > /tmp/pr.diff
-
-      - name: Collect specs
-        if: steps.dedupe.outputs.skip != 'true'
-        run: |
-          if [ -d "docs/specs" ]; then
-            find docs/specs -type f \( -name '*.md' -o -name '*.txt' \) -exec cat {} + > /tmp/specs.txt
-          else
-            echo "No specs found." > /tmp/specs.txt
-          fi
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node .github/scripts/build-context.mjs
 
       - name: Validate LLM env
         if: steps.dedupe.outputs.skip != 'true'
@@ -99,7 +85,11 @@ jobs:
 
           echo "Azure OpenAI env looks good."
 
-      - name: Run LLM review
+      - name: Build AI container
+        if: steps.dedupe.outputs.skip != 'true'
+        run: docker build -f Dockerfile.ai -t beam-ai-runner .
+
+      - name: Run LLM review in container
         if: steps.dedupe.outputs.skip != 'true'
         env:
           AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
@@ -111,7 +101,23 @@ jobs:
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
-        run: node .github/scripts/pr-review.mjs
+        run: |
+          docker run --rm \
+            -v "$PWD:/workspace" \
+            -v /tmp/pr.diff:/tmp/pr.diff \
+            -v /tmp/specs.txt:/tmp/specs.txt \
+            -v /tmp/review-findings.json:/tmp/review-findings.json \
+            -w /workspace \
+            -e AZURE_OPENAI_API_KEY="$AZURE_OPENAI_API_KEY" \
+            -e AZURE_OPENAI_ENDPOINT="$AZURE_OPENAI_ENDPOINT" \
+            -e AZURE_OPENAI_API_VERSION="$AZURE_OPENAI_API_VERSION" \
+            -e AZURE_OPENAI_DEPLOYMENT="$AZURE_OPENAI_DEPLOYMENT" \
+            -e GH_TOKEN="$GH_TOKEN" \
+            -e GH_API_URL="$GH_API_URL" \
+            -e REPO="$REPO" \
+            -e PR_NUMBER="$PR_NUMBER" \
+            -e COMMIT_SHA="$COMMIT_SHA" \
+            beam-ai-runner node .github/scripts/pr-review.mjs
 
       - name: Trigger fix agent
         if: steps.dedupe.outputs.skip != 'true'

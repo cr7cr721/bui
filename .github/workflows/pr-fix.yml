@@ -35,6 +35,12 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
+      - name: Validate fix script exists
+        run: test -f .github/scripts/pr-fix.mjs
+
+      - name: Validate context builder exists
+        run: test -f .github/scripts/build-context.mjs
+
       - name: Skip if already fixed this reviewed commit
         id: dedupe
         env:
@@ -48,21 +54,11 @@ jobs:
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Set up Python
+      - name: Build context inputs
         if: steps.dedupe.outputs.skip != 'true'
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install aider
-        if: steps.dedupe.outputs.skip != 'true'
-        run: pip install --quiet aider-chat
-
-      - name: Set up Node.js
-        if: steps.dedupe.outputs.skip != 'true'
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
+        env:
+          COMMIT_SHA: ${{ inputs.head_sha }}
+        run: node .github/scripts/build-context.mjs
 
       - name: Configure git identity
         if: steps.dedupe.outputs.skip != 'true'
@@ -70,7 +66,11 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Run AI fix agent
+      - name: Build AI container
+        if: steps.dedupe.outputs.skip != 'true'
+        run: docker build -f Dockerfile.ai -t beam-ai-runner .
+
+      - name: Run AI fix agent in container
         if: steps.dedupe.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -82,4 +82,19 @@ jobs:
           AZURE_API_BASE: ${{ vars.AZURE_OPENAI_ENDPOINT }}
           AZURE_API_VERSION: ${{ vars.AZURE_OPENAI_API_VERSION }}
           AZURE_OPENAI_DEPLOYMENT: ${{ vars.AZURE_OPENAI_DEPLOYMENT }}
-        run: node .github/scripts/pr-fix.mjs
+        run: |
+          docker run --rm \
+            -v "$PWD:/workspace" \
+            -v /tmp/pr.diff:/tmp/pr.diff \
+            -v /tmp/specs.txt:/tmp/specs.txt \
+            -w /workspace \
+            -e GH_TOKEN="$GH_TOKEN" \
+            -e GH_API_URL="$GH_API_URL" \
+            -e REPO="$REPO" \
+            -e PR_NUMBER="$PR_NUMBER" \
+            -e HEAD_SHA="$HEAD_SHA" \
+            -e AZURE_API_KEY="$AZURE_API_KEY" \
+            -e AZURE_API_BASE="$AZURE_API_BASE" \
+            -e AZURE_API_VERSION="$AZURE_API_VERSION" \
+            -e AZURE_OPENAI_DEPLOYMENT="$AZURE_OPENAI_DEPLOYMENT" \
+            beam-ai-runner node .github/scripts/pr-fix.mjs
