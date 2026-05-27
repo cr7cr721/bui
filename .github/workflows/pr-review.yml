@@ -137,13 +137,41 @@ jobs:
 
       - name: Trigger fix agent
         if: steps.dedupe.outputs.skip != 'true'
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_HOST: ghosthub.corp.blizzard.net
+          GH_API_URL: ${{ github.api_url }}
+          REPO: ${{ github.repository }}
+          HEAD_BRANCH: ${{ github.head_ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          gh workflow run pr-fix.yml \
-            --repo "${{ github.repository }}" \
-            --ref "${{ github.head_ref }}" \
-            --field pr_number="${{ github.event.pull_request.number }}" \
-            --field head_sha="${{ github.event.pull_request.head.sha }}" \
-            --field head_branch="${{ github.head_ref }}"
+          set -euo pipefail
+
+          payload=$(cat <<JSON
+          {
+            "ref": "${HEAD_BRANCH}",
+            "inputs": {
+              "pr_number": "${PR_NUMBER}",
+              "head_sha": "${HEAD_SHA}",
+              "head_branch": "${HEAD_BRANCH}"
+            }
+          }
+          JSON
+          )
+
+          http_code=$(curl -sS -o /tmp/dispatch.out -w "%{http_code}" \
+            -X POST \
+            -H "Authorization: token ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "Content-Type: application/json" \
+            "${GH_API_URL}/repos/${REPO}/actions/workflows/pr-fix.yml/dispatches" \
+            -d "${payload}")
+
+          if [ "${http_code}" != "204" ]; then
+            echo "Failed to dispatch pr-fix workflow. HTTP ${http_code}"
+            cat /tmp/dispatch.out
+            exit 1
+          fi
+
+          echo "pr-fix workflow dispatched successfully."
