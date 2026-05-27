@@ -8,6 +8,7 @@ on:
 permissions:
   pull-requests: write
   contents: read
+  actions: write
 
 concurrency:
   group: pr-review-${{ github.event.pull_request.number }}
@@ -169,9 +170,9 @@ jobs:
             -d "${payload}")
 
           if [ "${http_code}" != "204" ]; then
-            echo "Failed to dispatch pr-fix workflow. HTTP ${http_code}"
+            echo "Warning: failed to dispatch pr-fix workflow. HTTP ${http_code}"
             cat /tmp/dispatch.out
-            exit 1
+            exit 0
           fi
 
           echo "pr-fix workflow dispatched successfully."
