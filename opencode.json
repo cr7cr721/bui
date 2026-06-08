@@ -1,0 +1,19 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "azure": {
+      "npm": "@ai-sdk/azure",
+      "options": {
+        "baseURL": "{env:AZURE_API_BASE}/openai/deployments",
+        "apiVersion": "{env:AZURE_API_VERSION}"
+      },
+      "models": {
+        "gpt-5.4": { "name": "gpt-5.4" },
+        "gpt-5.4-pro": { "name": "gpt-5.4-pro" },
+        "gpt-5.3-codex": { "name": "gpt-5.3-codex" },
+        "gpt-5.3-chat": { "name": "gpt-5.3-chat" }
+      }
+    }
+  },
+  "model": "azure/{env:AZURE_OPENAI_DEPLOYMENT}"
+}

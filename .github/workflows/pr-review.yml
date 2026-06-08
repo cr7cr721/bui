@@ -7,7 +7,8 @@ on:
 
 permissions:
   pull-requests: write
-  contents:  actions: write
+  contents: read
+  actions: write
 
 concurrency:
   group: pr-review-${{ github.event.pull_request.number }}
@@ -70,7 +71,6 @@ jobs:
           AZURE_OPENAI_DEPLOYMENT: ${{ vars.AZURE_OPENAI_DEPLOYMENT }}
         run: |
           set -euo pipefail
-
           missing=0
           for k in AZURE_OPENAI_API_KEY AZURE_OPENAI_ENDPOINT AZURE_OPENAI_API_VERSION AZURE_OPENAI_DEPLOYMENT; do
             if [ -z "${!k:-}" ]; then
@@ -78,18 +78,14 @@ jobs:
               missing=1
             fi
           done
-
-          if [ "$missing" -eq 1 ]; then
-            exit 1
-          fi
-
+          [ "$missing" -eq 1 ] && exit 1 || true
           echo "Azure OpenAI env looks good."
 
       - name: Build AI container
         if: steps.dedupe.outputs.skip != 'true'
         run: docker build -f Dockerfile.ai -t beam-ai-runner .
 
-      - name: Run LLM review (container with host fallback)
+      - name: Run PR review (opencode in container)
         if: steps.dedupe.outputs.skip != 'true'
         shell: bash
         env:
@@ -105,18 +101,16 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Try container path first, but fall back when runner Docker API is incompatible.
           if docker version >/dev/null 2>&1; then
-            echo "Trying container-based review..."
+            echo "Running review in container..."
             if docker run --rm \
               -v "$PWD:/workspace" \
               -v /tmp/pr.diff:/tmp/pr.diff \
               -v /tmp/specs.txt:/tmp/specs.txt \
-              -v /tmp/review-findings.json:/tmp/review-findings.json \
               -w /workspace \
-              -e AZURE_OPENAI_API_KEY="$AZURE_OPENAI_API_KEY" \
-              -e AZURE_OPENAI_ENDPOINT="$AZURE_OPENAI_ENDPOINT" \
-              -e AZURE_OPENAI_API_VERSION="$AZURE_OPENAI_API_VERSION" \
+              -e AZURE_API_KEY="$AZURE_OPENAI_API_KEY" \
+              -e AZURE_API_BASE="$AZURE_OPENAI_ENDPOINT" \
+              -e AZURE_API_VERSION="$AZURE_OPENAI_API_VERSION" \
               -e AZURE_OPENAI_DEPLOYMENT="$AZURE_OPENAI_DEPLOYMENT" \
               -e GH_TOKEN="$GH_TOKEN" \
               -e GH_API_URL="$GH_API_URL" \
@@ -124,15 +118,17 @@ jobs:
               -e PR_NUMBER="$PR_NUMBER" \
               -e COMMIT_SHA="$COMMIT_SHA" \
               beam-ai-runner node .github/scripts/pr-review.mjs; then
-              echo "Container review succeeded."
               exit 0
             fi
-
             echo "Container run failed (likely Docker API mismatch). Falling back to host node execution..."
           else
-            echo "Docker not available. Falling back to host node execution..."
+            echo "Docker not available, falling back to host node execution..."
           fi
 
+          # Host fallback — requires opencode CLI to be installed on the runner.
+          AZURE_API_KEY="$AZURE_OPENAI_API_KEY" \
+          AZURE_API_BASE="$AZURE_OPENAI_ENDPOINT" \
+          AZURE_API_VERSION="$AZURE_OPENAI_API_VERSION" \
           node .github/scripts/pr-review.mjs
 
       - name: Trigger fix agent

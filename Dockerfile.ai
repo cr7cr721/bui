@@ -13,4 +13,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
 
 RUN pip install --no-cache-dir aider-chat
 
+# Install opencode CLI (used by PR review agent so both agents share the same toolchain)
+RUN npm install -g opencode-ai
+
 CMD ["bash"]

@@ -1,83 +1,117 @@
+#!/usr/bin/env node
+/**
+ * pr-review.mjs
+ *
+ * Runs the PR review agent via the `opencode` CLI (same toolchain family as
+ * the pr-fix agent, which uses aider — both shipped in Dockerfile.ai).
+ *
+ * Flow:
+ *  1. Load diff + specs context (built by build-context.mjs)
+ *  2. Fetch existing AI review comments on this PR and pass them to the
+ *     model as "already raised" so it doesn't duplicate feedback
+ *  3. Invoke `opencode run` with a strict-JSON system prompt
+ *  4. Parse JSON findings, dedupe again locally, then post a GitHub review
+ *     (with issue-comment fallback)
+ *
+ * Required env:
+ *   AZURE_API_KEY, AZURE_API_BASE, AZURE_API_VERSION, AZURE_OPENAI_DEPLOYMENT
+ *   GH_TOKEN, GH_API_URL, REPO, PR_NUMBER, COMMIT_SHA
+ */
+
 import { readFileSync, writeFileSync } from "fs";
+import { spawnSync } from "child_process";
 
-const {
-  AZURE_OPENAI_API_KEY,
-  AZURE_OPENAI_ENDPOINT,
-  AZURE_OPENAI_API_VERSION,
-  AZURE_OPENAI_DEPLOYMENT,
-  GH_TOKEN,
-  GH_API_URL,
-  REPO,
-  PR_NUMBER,
-  COMMIT_SHA,
-} = process.env;
-
-function required(name, value) {
-  if (!value) {
-    throw new Error(`Missing required env: ${name}`);
-  }
-  return value;
+function getEnv(name, fallback = "") {
+  return process.env[name]?.trim() || fallback;
+}
+function requireEnv(name) {
+  const v = getEnv(name);
+  if (!v) throw new Error(`Missing required env: ${name}`);
+  return v;
 }
 
-function toSeverity(value) {
-  const s = String(value || "").toLowerCase();
-  if (s === "critical" || s === "warning" || s === "suggestion") return s;
-  return "suggestion";
-}
+const AZURE_API_KEY = requireEnv("AZURE_API_KEY");
+requireEnv("AZURE_API_BASE");
+requireEnv("AZURE_API_VERSION");
+const AZURE_DEPLOYMENT = requireEnv("AZURE_OPENAI_DEPLOYMENT");
 
-function normalizeFindings(parsed) {
-  const list = Array.isArray(parsed) ? parsed : parsed?.findings;
-  if (!Array.isArray(list)) return [];
-  return list
-  .filter((f) => f && typeof f === "object" && typeof f.body === "string")
-  .map((f) => ({
-    path: typeof f.path === "string" && f.path.trim() ? f.path.trim() : null,
-    line: Number.isInteger(f.line) && f.line > 0 ? f.line : null,
-    body: f.body.trim(),
-    severity: toSeverity(f.severity),
-  }))
-  .filter((f) => f.body.length > 0);
-}
-
-async function postIssueComment(body) {
-  const url = `${GH_API_URL}/repos/${REPO}/issues/${PR_NUMBER}/comments`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `token ${GH_TOKEN}`,
-      Accept: "application/vnd.github.v3+json",
-    },
-    body: JSON.stringify({ body }),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`GitHub issue comment error: ${res.status} ${text}`);
-  }
-}
-
-required("AZURE_OPENAI_API_KEY", AZURE_OPENAI_API_KEY);
-required("AZURE_OPENAI_ENDPOINT", AZURE_OPENAI_ENDPOINT);
-required("AZURE_OPENAI_API_VERSION", AZURE_OPENAI_API_VERSION);
-required("AZURE_OPENAI_DEPLOYMENT", AZURE_OPENAI_DEPLOYMENT);
-required("GH_TOKEN", GH_TOKEN);
-required("GH_API_URL", GH_API_URL);
-required("REPO", REPO);
-required("PR_NUMBER", PR_NUMBER);
-required("COMMIT_SHA", COMMIT_SHA);
+const GH_TOKEN = requireEnv("GH_TOKEN");
+const GH_API_URL = requireEnv("GH_API_URL").replace(/\/$/, "");
+const REPO = requireEnv("REPO");
+const PR_NUMBER = requireEnv("PR_NUMBER");
+const COMMIT_SHA = requireEnv("COMMIT_SHA");
 
 const diff = readFileSync("/tmp/pr.diff", "utf-8");
-const specs = readFileSync("/tmp/specs.txt", "utf-8");
+const specs = (() => {
+  try { return readFileSync("/tmp/specs.txt", "utf-8"); } catch { return ""; }
+})();
 
 if (!diff.trim()) {
   console.log("Empty diff, skipping review.");
   process.exit(0);
 }
 
-const MAX_CHARS = 120_000;
+const MAX_DIFF_CHARS = 120_000;
 const truncatedDiff =
-  diff.length > MAX_CHARS ? `${diff.slice(0, MAX_CHARS)}\n...[truncated]` : diff;
+  diff.length > MAX_DIFF_CHARS ? `${diff.slice(0, MAX_DIFF_CHARS)}\n...[truncated]` : diff;
 
+async function gh(path, init = {}) {
+  return fetch(`${GH_API_URL}${path}`, {
+    ...init,
+    headers: {
+      Authorization: `token ${GH_TOKEN}`,
+      Accept: "application/vnd.github+json",
+      "Content-Type": "application/json",
+      ...(init.headers || {}),
+    },
+  });
+}
+
+async function ghJson(path) {
+  const res = await gh(path);
+  if (!res.ok) throw new Error(`GitHub ${res.status} on ${path}: ${await res.text()}`);
+  return res.json();
+}
+
+async function fetchExistingBotComments() {
+  const inline = await ghJson(`/repos/${REPO}/pulls/${PR_NUMBER}/comments?per_page=100`);
+  const issueComments = await ghJson(`/repos/${REPO}/issues/${PR_NUMBER}/comments?per_page=100`);
+  const isBot = (u) => u?.login === "github-actions[bot]";
+
+  const inlineBot = inline
+    .filter((c) => isBot(c.user))
+    .map((c) => ({
+      path: c.path || null,
+      line: c.line ?? c.original_line ?? null,
+      body: c.body || "",
+    }));
+  const issueBot = issueComments
+    .filter((c) => isBot(c.user) && /AI Review/i.test(c.body || ""))
+    .map((c) => ({ path: null, line: null, body: c.body || "" }));
+
+  return [...inlineBot, ...issueBot];
+}
+
+function norm(s) {
+  return String(s || "")
+    .replace(/\*\*\[(critical|warning|suggestion)\]\*\*/gi, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function isDuplicate(finding, existing) {
+  const fBody = norm(finding.body);
+  if (!fBody) return true;
+  return existing.some((e) => {
+    const samePath = (e.path || null) === (finding.path || null);
+    const sameLine = (e.line || null) === (finding.line || null);
+    const eBody = norm(e.body);
+    if (samePath && sameLine && eBody === fBody) return true;
+    if (samePath && sameLine && fBody.length >= 40 && (eBody.includes(fBody) || fBody.includes(eBody))) return true;
+    return false;
+  });
+}
 
 const systemPrompt = `You are a senior engineer reviewing a pull request.
 
@@ -89,8 +123,9 @@ Review guidelines:
 - Focus ONLY on changed code. Do not summarize the PR.
 - Avoid style-only feedback unless it impacts readability or safety.
 - Be concise. Only report actionable findings.
+- DO NOT repeat any feedback already listed under "Existing AI review comments".
 
-Return STRICT JSON with shape:
+Output: Return ONLY a valid JSON object (no prose, no code fences) with shape:
 {
   "findings": [
     {
@@ -102,11 +137,21 @@ Return STRICT JSON with shape:
   ]
 }
 
-If no findings:
-{ "findings": [] }`;
+If no new findings: {"findings": []}`;
 
-const userPrompt = `## Specs / Context
+function buildUserPrompt(existing) {
+  const existingBlock = existing.length
+    ? existing
+        .slice(0, 50)
+        .map((e, i) => `${i + 1}. [${e.path || "general"}${e.line ? `:${e.line}` : ""}] ${norm(e.body).slice(0, 400)}`)
+        .join("\n")
+    : "(none)";
+
+  return `## Specs / Context
 ${specs.slice(0, 20_000)}
+
+## Existing AI review comments (do NOT repeat these)
+${existingBlock}
 
 ## PR Diff
 \`\`\`diff
@@ -114,98 +159,121 @@ ${truncatedDiff}
 \`\`\`
 
 Review this PR and return JSON only.`;
+}
 
-const azureBase = AZURE_OPENAI_ENDPOINT.replace(/\/$/, "");
-const azureUrl = `${azureBase}/openai/deployments/${AZURE_OPENAI_DEPLOYMENT}/chat/completions?api-version=${encodeURIComponent(AZURE_OPENAI_API_VERSION)}`;
+function runOpencode(prompt) {
+  const model = `azure/${AZURE_DEPLOYMENT}`;
+  console.log(`Invoking opencode run --model ${model} (prompt ${prompt.length} chars)`);
 
-const response = await fetch(azureUrl, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "api-key": AZURE_OPENAI_API_KEY,
-  },
-  body: JSON.stringify({
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
-    ],
-    temperature: 0.2,
-    response_format: { type: "json_object" },
-  }),
-});
+  const result = spawnSync("opencode", ["run", "--model", model, prompt], {
+    encoding: "utf-8",
+    env: { ...process.env, AZURE_API_KEY },
+    maxBuffer: 32 * 1024 * 1024,
+  });
 
-if (!response.ok) {
-  console.error("LLM API error:", response.status, await response.text());
+  if (result.error) throw new Error(`Failed to spawn opencode: ${result.error.message}`);
+  if (result.status !== 0) {
+    console.error("opencode stderr:", result.stderr);
+    throw new Error(`opencode exited with status ${result.status}`);
+  }
+  return result.stdout || "";
+}
+
+function extractJson(text) {
+  const trimmed = text.trim();
+  try { return JSON.parse(trimmed); } catch {}
+  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenced) {
+    try { return JSON.parse(fenced[1].trim()); } catch {}
+  }
+  const first = trimmed.indexOf("{");
+  const last = trimmed.lastIndexOf("}");
+  if (first !== -1 && last > first) {
+    try { return JSON.parse(trimmed.slice(first, last + 1)); } catch {}
+  }
+  return null;
+}
+
+function toSeverity(v) {
+  const s = String(v || "").toLowerCase();
+  return s === "critical" || s === "warning" || s === "suggestion" ? s : "suggestion";
+}
+
+function normalizeFindings(parsed) {
+  const list = Array.isArray(parsed) ? parsed : parsed?.findings;
+  if (!Array.isArray(list)) return [];
+  return list
+    .filter((f) => f && typeof f === "object" && typeof f.body === "string")
+    .map((f) => ({
+      path: typeof f.path === "string" && f.path.trim() ? f.path.trim() : null,
+      line: Number.isInteger(f.line) && f.line > 0 ? f.line : null,
+      body: f.body.trim(),
+      severity: toSeverity(f.severity),
+    }))
+    .filter((f) => f.body.length > 0);
+}
+
+// ── main ─────────────────────────────────────────────────────────────────────
+
+const existing = await fetchExistingBotComments();
+console.log(`Found ${existing.length} existing bot comment(s) on PR #${PR_NUMBER}`);
+
+const userPrompt = buildUserPrompt(existing);
+const stdout = runOpencode(`${systemPrompt}\n\n${userPrompt}`);
+const parsed = extractJson(stdout);
+
+if (!parsed) {
+  console.error("Could not parse JSON from opencode output. Raw output:\n", stdout);
   process.exit(1);
 }
 
-const data = await response.json();
-const content = data.choices?.[0]?.message?.content ?? '{"findings":[]}';
+let findings = normalizeFindings(parsed);
+console.log(`Model returned ${findings.length} raw finding(s).`);
 
-let findings;
-try {
-  const parsed = JSON.parse(content);
-  findings = normalizeFindings(parsed);
-} catch {
-  console.error("Failed to parse LLM response:", content);
-  findings = [
-    {
-      path: null,
-      line: null,
-      body: "Model returned invalid JSON. Please rerun review.",
-      severity: "suggestion",
-    },
-  ];
-}
+const before = findings.length;
+findings = findings.filter((f) => !isDuplicate(f, existing));
+console.log(`After dedup vs existing comments: ${findings.length} (removed ${before - findings.length})`);
 
-console.log(`Found ${findings.length} review finding(s).`);
 writeFileSync("/tmp/review-findings.json", JSON.stringify({ findings }, null, 2), "utf-8");
 
 if (findings.length === 0) {
-  console.log("No findings, skipping comment.");
+  console.log("No new findings to post.");
   process.exit(0);
 }
 
-
 const inlineComments = findings
-.filter((f) => f.path && f.line)
-.map((f) => ({
-  path: f.path,
-  line: f.line,
-  body: `**[${f.severity}]** ${f.body}`,
-}));
+  .filter((f) => f.path && f.line)
+  .map((f) => ({ path: f.path, line: f.line, body: `**[${f.severity}]** ${f.body}` }));
 
 const generalComments = findings.filter((f) => !f.path || !f.line);
 
 const reviewBody =
   generalComments.length > 0
-    ? "## AI Review\n\n" +
-    generalComments.map((f) => `- **[${f.severity}]** ${f.body}`).join("\n")
+    ? "## AI Review\n\n" + generalComments.map((f) => `- **[${f.severity}]** ${f.body}`).join("\n")
     : "## AI Review\n\nSee inline comments.";
 
-const reviewPayload = {
-  commit_id: COMMIT_SHA,
-  event: "COMMENT",
-  body: reviewBody,
-  comments: inlineComments,
-};
-
-let ghResponse = await fetch(`${GH_API_URL}/repos/${REPO}/pulls/${PR_NUMBER}/reviews`, {
+const reviewRes = await gh(`/repos/${REPO}/pulls/${PR_NUMBER}/reviews`, {
   method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: `token ${GH_TOKEN}`,
-    Accept: "application/vnd.github.v3+json",
-  },
-  body: JSON.stringify(reviewPayload),
+  body: JSON.stringify({
+    commit_id: COMMIT_SHA,
+    event: "COMMENT",
+    body: reviewBody,
+    comments: inlineComments,
+  }),
 });
 
-if (!ghResponse.ok) {
-  const errText = await ghResponse.text();
-  console.error("GitHub review API error:", ghResponse.status, errText);
-
-  // Fallback: post a regular PR comment so signal is not lost.
-  await postIssueComment(`${reviewBody}\n\n(Inline comment post failed, fallback to issue comment.)`);
+if (!reviewRes.ok) {
+  console.error("GitHub review API error:", reviewRes.status, await reviewRes.text());
+  const fallback = await gh(`/repos/${REPO}/issues/${PR_NUMBER}/comments`, {
+    method: "POST",
+    body: JSON.stringify({
+      body: `${reviewBody}\n\n(Inline review post failed, fallback to issue comment.)`,
+    }),
+  });
+  if (!fallback.ok) {
+    console.error("Fallback issue comment also failed:", fallback.status, await fallback.text());
+    process.exit(1);
+  }
   console.log("Fallback issue comment posted.");
   process.exit(0);
 }
