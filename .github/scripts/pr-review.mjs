@@ -19,7 +19,7 @@
  */
 
 import { readFileSync, writeFileSync } from "fs";
-import { spawnSync } from "child_process";
+import { spawn } from "child_process";
 import { createServer } from "http";
 
 function getEnv(name, fallback = "") {
@@ -227,13 +227,22 @@ async function runOpencode(prompt) {
 
   const proxy = await startAzureProxy(AZURE_API_BASE);
   try {
-    const result = spawnSync("opencode", ["run", "--model", model, prompt], {
-      encoding: "utf-8",
-      env: { ...process.env, AZURE_API_KEY, AZURE_API_BASE: proxy.url },
-      maxBuffer: 32 * 1024 * 1024,
+    // Use async spawn (not spawnSync) — spawnSync blocks the event loop,
+    // which would prevent our in-process proxy server above from ever
+    // servicing opencode's requests, causing a hang.
+    const result = await new Promise((resolve, reject) => {
+      const child = spawn("opencode", ["run", "--model", model, prompt], {
+        env: { ...process.env, AZURE_API_KEY, AZURE_API_BASE: proxy.url },
+      });
+
+      let stdout = "";
+      let stderr = "";
+      child.stdout.on("data", (d) => { stdout += d; });
+      child.stderr.on("data", (d) => { stderr += d; });
+      child.on("error", (err) => reject(new Error(`Failed to spawn opencode: ${err.message}`)));
+      child.on("close", (status) => resolve({ status, stdout, stderr }));
     });
 
-    if (result.error) throw new Error(`Failed to spawn opencode: ${result.error.message}`);
     if (result.status !== 0) {
       console.error("opencode stderr:", result.stderr);
       throw new Error(`opencode exited with status ${result.status}`);
