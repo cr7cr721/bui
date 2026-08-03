@@ -75,13 +75,23 @@ function startAzureProxy(realBase) {
       // we actually hand back below, which can hang the client.
       delete headers["accept-encoding"];
 
+      const startedAt = Date.now();
+      console.error(
+        `[azure-proxy] -> ${req.method} ${targetUrl.pathname}${targetUrl.search} (body ${body.length}b)`
+      );
       try {
         const upstream = await fetch(targetUrl, {
           method: req.method,
           headers,
           body: ["GET", "HEAD"].includes(req.method) ? undefined : body,
         });
+        console.error(
+          `[azure-proxy] <- upstream headers received after ${Date.now() - startedAt}ms, status ${upstream.status}`
+        );
         const responseBody = Buffer.from(await upstream.arrayBuffer());
+        console.error(
+          `[azure-proxy] <- upstream body fully read after ${Date.now() - startedAt}ms total (${responseBody.length}b)`
+        );
         const responseHeaders = Object.fromEntries(upstream.headers);
         // These describe the (possibly compressed/chunked) wire format of
         // the upstream response, not the decoded `responseBody` we're
@@ -92,7 +102,9 @@ function startAzureProxy(realBase) {
         responseHeaders["content-length"] = String(responseBody.length);
         res.writeHead(upstream.status, responseHeaders);
         res.end(responseBody);
+        console.error(`[azure-proxy] response relayed to client after ${Date.now() - startedAt}ms total`);
       } catch (err) {
+        console.error(`[azure-proxy] error after ${Date.now() - startedAt}ms:`, err);
         res.writeHead(502, { "content-type": "application/json" });
         res.end(JSON.stringify({ error: { message: String(err) } }));
       }
@@ -242,6 +254,7 @@ async function runOpencode(prompt) {
     // Use async spawn (not spawnSync) — spawnSync blocks the event loop,
     // which would prevent our in-process proxy server above from ever
     // servicing opencode's requests, causing a hang.
+    const OPENCODE_TIMEOUT_MS = 8 * 60 * 1000;
     const result = await new Promise((resolve, reject) => {
       const child = spawn("opencode", ["run", "--model", model, prompt], {
         env: { ...process.env, AZURE_API_KEY, AZURE_API_BASE: proxy.url },
@@ -249,10 +262,35 @@ async function runOpencode(prompt) {
 
       let stdout = "";
       let stderr = "";
+      let settled = false;
+      const heartbeat = setInterval(() => {
+        console.error(`[opencode] still running (${Math.round(process.uptime())}s process uptime)...`);
+      }, 30_000);
+      const timeout = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        console.error(`[opencode] timed out after ${OPENCODE_TIMEOUT_MS}ms, killing child`);
+        child.kill("SIGKILL");
+        clearInterval(heartbeat);
+        reject(new Error(`opencode timed out after ${OPENCODE_TIMEOUT_MS}ms`));
+      }, OPENCODE_TIMEOUT_MS);
+
       child.stdout.on("data", (d) => { stdout += d; });
       child.stderr.on("data", (d) => { stderr += d; });
-      child.on("error", (err) => reject(new Error(`Failed to spawn opencode: ${err.message}`)));
-      child.on("close", (status) => resolve({ status, stdout, stderr }));
+      child.on("error", (err) => {
+        if (settled) return;
+        settled = true;
+        clearInterval(heartbeat);
+        clearTimeout(timeout);
+        reject(new Error(`Failed to spawn opencode: ${err.message}`));
+      });
+      child.on("close", (status) => {
+        if (settled) return;
+        settled = true;
+        clearInterval(heartbeat);
+        clearTimeout(timeout);
+        resolve({ status, stdout, stderr });
+      });
     });
 
     if (result.status !== 0) {
