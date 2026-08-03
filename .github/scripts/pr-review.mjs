@@ -234,7 +234,14 @@ const before = findings.length;
 findings = findings.filter((f) => !isDuplicate(f, existing));
 console.log(`After dedup vs existing comments: ${findings.length} (removed ${before - findings.length})`);
 
-writeFileSync("/tmp/review-findings.json", JSON.stringify({ findings }, null, 2), "utf-8");
+const reviewArtifact = {
+  prNumber: Number(PR_NUMBER),
+  commitSha: COMMIT_SHA,
+  findings,
+  generatedAt: new Date().toISOString(),
+};
+
+writeFileSync("/tmp/review-findings.json", JSON.stringify(reviewArtifact, null, 2), "utf-8");
 
 if (findings.length === 0) {
   console.log("No new findings to post.");

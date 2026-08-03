@@ -13,8 +13,8 @@
  *  5. If aider produced changes, commit with [ai-fix source=<sha>] marker and push
  */
 
+import { existsSync, readFileSync } from "fs";
 import { spawnSync } from "child_process";
-import { existsSync } from "fs";
 
 const MAX_COMMENTS = 20;
 const MAX_FILES = 15;
@@ -57,6 +57,24 @@ async function ghGet(path) {
 // ── fetch review comments ─────────────────────────────────────────────────────
 
 async function fetchBotReviewComments() {
+  // Prefer the explicit review artifact when present so the handoff is deterministic.
+  if (existsSync("/tmp/review-findings.json")) {
+    try {
+      const artifact = JSON.parse(readFileSync("/tmp/review-findings.json", "utf8"));
+      if (artifact?.commitSha === HEAD_SHA && Array.isArray(artifact?.findings) && artifact.findings.length > 0) {
+        console.log(`Loaded ${artifact.findings.length} finding(s) from /tmp/review-findings.json`);
+        return artifact.findings.map((f) => ({
+          path: f.path || null,
+          line: Number.isInteger(f.line) ? f.line : null,
+          body: f.body || "",
+        }));
+      }
+      console.log("Structured review artifact exists but does not match the reviewed SHA or contains no findings.");
+    } catch (err) {
+      console.warn(`Could not read structured review artifact: ${err.message}`);
+    }
+  }
+
   // Get all reviews on this PR, find the most recent one from github-actions[bot]
   // that was submitted against our HEAD_SHA.
   const reviews = await ghGet(`/repos/${REPO}/pulls/${PR_NUMBER}/reviews?per_page=100`);

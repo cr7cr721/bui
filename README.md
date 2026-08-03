@@ -22,7 +22,7 @@ Modern React-based dashboard for managing BEAM business rules. Built with Vite, 
 
 ---
 
-## 🎯 Overview
+## 🎯 Overview {#overview}
 
 BEAM Rules Dashboard V2 is a complete rewrite of the BEAM UI with modern tooling and best practices. This application allows users to:
 
@@ -48,7 +48,7 @@ BEAM Rules Dashboard V2 is a complete rewrite of the BEAM UI with modern tooling
 
 ---
 
-## 🛠 Tech Stack
+## 🛠 Tech Stack {#tech-stack}
 
 ### Core
 
@@ -91,7 +91,7 @@ BEAM Rules Dashboard V2 is a complete rewrite of the BEAM UI with modern tooling
 
 ---
 
-## 📦 Prerequisites
+## 📦 Prerequisites {#prerequisites}
 
 Before you begin, ensure you have the following installed:
 
@@ -131,7 +131,7 @@ git --version     # Any modern version
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Getting Started {#getting-started}
 
 ### 1. Clone the Repository
 
@@ -180,7 +180,7 @@ Use your Blizzard credentials. After successful login, you'll see a welcome mess
 
 ---
 
-## 📁 Project Structure
+## 📁 Project Structure {#project-structure}
 
 ```
 src/
@@ -230,7 +230,7 @@ src/
 
 ---
 
-## 🎮 Available Scripts
+## 🎮 Available Scripts {#available-scripts}
 
 ### Development
 
@@ -279,7 +279,7 @@ yarn test:coverage
 
 ---
 
-## 🔧 Environment Variables
+## 🔧 Environment Variables {#environment-variables}
 
 Create a `.env` file in the root directory:
 
@@ -367,7 +367,7 @@ await regionsService.toggle(region, enable)
 
 ---
 
-## 🏗 Building for Production
+## 🏗 Building for Production {#building-for-production}
 
 ### Build
 
@@ -393,55 +393,7 @@ docker-compose up --build
 
 ---
 
-## 🧪 Testing
-
-### Run Tests
-
-```bash
-yarn test          # Watch mode
-yarn test:ui       # Browser UI
-yarn test:run      # CI mode
-yarn test:coverage # Coverage report
-```
-
-### Test Structure
-
-```
-src/
-├── test/
-│   ├── setup.ts           # Global test setup
-│   ├── test-utils.tsx     # Custom render with providers
-│   └── mocks/
-│       ├── data.ts        # Mock data factories
-│       ├── handlers.ts    # MSW request handlers
-│       └── server.ts      # MSW server setup
-├── store/__tests__/
-│   └── useStore.test.ts
-├── services/__tests__/
-│   └── rules.service.test.ts
-├── hooks/__tests__/
-│   └── useRules.test.ts
-└── pages/RulesListPage/components/__tests__/
-    └── BulkActionsToolbar.test.tsx
-```
-
-### Writing Tests
-
-```typescript
-import { render, screen } from '@/test/test-utils'
-import { RulesFilters } from './RulesFilters'
-
-describe('RulesFilters', () => {
-  it('renders filter inputs', () => {
-    render(<RulesFilters />)
-    expect(screen.getByLabelText('Region')).toBeInTheDocument()
-  })
-})
-```
-
----
-
-## 📐 Code Style
+## 📐 Code Style {#code-style}
 
 ### Prettier
 
@@ -483,7 +435,7 @@ chore: add prettier and husky setup
 
 ---
 
-## 🏛 Architecture
+## 🏛 Architecture {#architecture}
 
 ### Component Hierarchy
 
@@ -528,7 +480,7 @@ App
 
 ---
 
-## 📡 API Documentation
+## 📡 API Documentation {#api-documentation}
 
 ### Base URL
 
@@ -561,7 +513,7 @@ x-auth-token: <token>
 
 ---
 
-## 🐛 Troubleshooting
+## 🐛 Troubleshooting {#troubleshooting}
 
 ### Port Already in Use
 
@@ -587,7 +539,7 @@ localStorage.clear()
 
 ---
 
-## 🤝 Contributing
+## 🤝 Contributing {#contributing}
 
 ### Branch Strategy
 
@@ -658,3 +610,36 @@ git checkout -b feature/my-feature
 **Last Updated:** December 2025  
 **Version:** 2.0.0  
 **Status:** Active Development
+
+---
+
+## 🤖 Agent Automation / Dark-Factory Flow
+
+This repository now has a working two-agent loop for PR automation:
+
+- `PR Review Agent` analyzes incoming PRs and posts actionable findings.
+- `PR Fix Agent` consumes those findings and applies targeted fixes back to the PR branch.
+- `Dockerfile.ai` provides the shared runtime so both agents use the same toolchain and environment.
+- `opencode.json` defines the shared OpenCode model/provider configuration for the review side.
+
+### Current flow
+
+1. A PR is opened or updated against `development`.
+2. The review workflow builds context, runs the review agent, and posts findings.
+3. If review succeeds, the workflow dispatches the fix workflow.
+4. The fix workflow reads the review comments and attempts code changes.
+5. If changes are made, the fix agent commits and pushes them back to the branch.
+
+### What this design is good for
+
+- Separating **analysis** from **code modification**.
+- Making agent behavior reproducible in Docker.
+- Keeping the PR loop mostly GitHub-driven, which is easy to audit.
+- Allowing the team to expand toward a more formal dark-factory pipeline later.
+
+### What is still worth improving
+
+- Use one clearly shared agent contract for review/fix inputs and outputs.
+- Make the fix trigger depend on actual review findings, not only workflow success.
+- Decide whether both agents should share the same LLM runtime tool (`opencode`) or keep the current mixed setup (`opencode` + `aider`).
+- Add a small state artifact or schema for handoff so the workflow is easier to debug.
