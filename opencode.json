@@ -4,8 +4,9 @@
     "azure": {
       "npm": "@ai-sdk/azure",
       "options": {
-        "baseURL": "{env:AZURE_API_BASE}/openai/deployments",
-        "apiVersion": "{env:AZURE_API_VERSION}"
+        "baseURL": "{env:AZURE_API_BASE}/openai",
+        "apiVersion": "{env:AZURE_API_VERSION}",
+        "useDeploymentBasedUrls": true
       },
       "models": {
         "gpt-5.4": { "name": "gpt-5.4" },
