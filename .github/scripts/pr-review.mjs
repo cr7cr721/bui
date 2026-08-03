@@ -20,6 +20,7 @@
 
 import { readFileSync, writeFileSync } from "fs";
 import { spawnSync } from "child_process";
+import { createServer } from "http";
 
 function getEnv(name, fallback = "") {
   return process.env[name]?.trim() || fallback;
@@ -31,9 +32,68 @@ function requireEnv(name) {
 }
 
 const AZURE_API_KEY = requireEnv("AZURE_API_KEY");
-requireEnv("AZURE_API_BASE");
+const AZURE_API_BASE = requireEnv("AZURE_API_BASE");
 requireEnv("AZURE_API_VERSION");
 const AZURE_DEPLOYMENT = requireEnv("AZURE_OPENAI_DEPLOYMENT");
+
+/**
+ * opencode's azure/openai-compatible chat-completions client always sends
+ * `max_tokens`, but reasoning models (gpt-5.x, o1, o3, ...) reject that
+ * parameter and require `max_completion_tokens` instead. There's no config
+ * knob to change the parameter name, so we run a tiny local reverse proxy
+ * that rewrites the JSON body before forwarding to the real Azure endpoint,
+ * and point opencode's AZURE_API_BASE at the proxy instead.
+ */
+function startAzureProxy(realBase) {
+  const server = createServer((req, res) => {
+    const chunks = [];
+    req.on("data", (c) => chunks.push(c));
+    req.on("end", async () => {
+      let body = Buffer.concat(chunks);
+      const contentType = req.headers["content-type"] || "";
+      if (contentType.includes("application/json") && body.length) {
+        try {
+          const parsed = JSON.parse(body.toString("utf-8"));
+          if (parsed && typeof parsed === "object" && "max_tokens" in parsed) {
+            parsed.max_completion_tokens = parsed.max_tokens;
+            delete parsed.max_tokens;
+            body = Buffer.from(JSON.stringify(parsed));
+          }
+        } catch {
+          // Not valid JSON (or not the shape we expect) — forward unmodified.
+        }
+      }
+
+      const targetUrl = new URL(req.url, realBase);
+      const headers = { ...req.headers };
+      delete headers.host;
+      delete headers["content-length"];
+
+      try {
+        const upstream = await fetch(targetUrl, {
+          method: req.method,
+          headers,
+          body: ["GET", "HEAD"].includes(req.method) ? undefined : body,
+        });
+        const responseHeaders = Object.fromEntries(upstream.headers);
+        delete responseHeaders["content-encoding"];
+        delete responseHeaders["transfer-encoding"];
+        res.writeHead(upstream.status, responseHeaders);
+        res.end(Buffer.from(await upstream.arrayBuffer()));
+      } catch (err) {
+        res.writeHead(502, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: { message: String(err) } }));
+      }
+    });
+  });
+
+  return new Promise((resolve) => {
+    server.listen(0, "127.0.0.1", () => {
+      const { port } = server.address();
+      resolve({ url: `http://127.0.0.1:${port}`, close: () => server.close() });
+    });
+  });
+}
 
 const GH_TOKEN = requireEnv("GH_TOKEN");
 const GH_API_URL = requireEnv("GH_API_URL").replace(/\/$/, "");
@@ -161,22 +221,27 @@ ${truncatedDiff}
 Review this PR and return JSON only.`;
 }
 
-function runOpencode(prompt) {
+async function runOpencode(prompt) {
   const model = `azure/${AZURE_DEPLOYMENT}`;
   console.log(`Invoking opencode run --model ${model} (prompt ${prompt.length} chars)`);
 
-  const result = spawnSync("opencode", ["run", "--model", model, prompt], {
-    encoding: "utf-8",
-    env: { ...process.env, AZURE_API_KEY },
-    maxBuffer: 32 * 1024 * 1024,
-  });
+  const proxy = await startAzureProxy(AZURE_API_BASE);
+  try {
+    const result = spawnSync("opencode", ["run", "--model", model, prompt], {
+      encoding: "utf-8",
+      env: { ...process.env, AZURE_API_KEY, AZURE_API_BASE: proxy.url },
+      maxBuffer: 32 * 1024 * 1024,
+    });
 
-  if (result.error) throw new Error(`Failed to spawn opencode: ${result.error.message}`);
-  if (result.status !== 0) {
-    console.error("opencode stderr:", result.stderr);
-    throw new Error(`opencode exited with status ${result.status}`);
+    if (result.error) throw new Error(`Failed to spawn opencode: ${result.error.message}`);
+    if (result.status !== 0) {
+      console.error("opencode stderr:", result.stderr);
+      throw new Error(`opencode exited with status ${result.status}`);
+    }
+    return result.stdout || "";
+  } finally {
+    proxy.close();
   }
-  return result.stdout || "";
 }
 
 function extractJson(text) {
@@ -219,7 +284,7 @@ const existing = await fetchExistingBotComments();
 console.log(`Found ${existing.length} existing bot comment(s) on PR #${PR_NUMBER}`);
 
 const userPrompt = buildUserPrompt(existing);
-const stdout = runOpencode(`${systemPrompt}\n\n${userPrompt}`);
+const stdout = await runOpencode(`${systemPrompt}\n\n${userPrompt}`);
 const parsed = extractJson(stdout);
 
 if (!parsed) {
