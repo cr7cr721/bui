@@ -68,6 +68,12 @@ function startAzureProxy(realBase) {
       const headers = { ...req.headers };
       delete headers.host;
       delete headers["content-length"];
+      // Let fetch negotiate/decompress on its own terms — forwarding the
+      // client's Accept-Encoding verbatim can make undici skip
+      // transparent decompression, leaving response headers (content-length,
+      // content-encoding) describing the wire format rather than the bytes
+      // we actually hand back below, which can hang the client.
+      delete headers["accept-encoding"];
 
       try {
         const upstream = await fetch(targetUrl, {
@@ -75,11 +81,17 @@ function startAzureProxy(realBase) {
           headers,
           body: ["GET", "HEAD"].includes(req.method) ? undefined : body,
         });
+        const responseBody = Buffer.from(await upstream.arrayBuffer());
         const responseHeaders = Object.fromEntries(upstream.headers);
+        // These describe the (possibly compressed/chunked) wire format of
+        // the upstream response, not the decoded `responseBody` we're
+        // sending — forwarding them verbatim causes clients to wait for
+        // byte counts that don't match, hanging the connection.
         delete responseHeaders["content-encoding"];
         delete responseHeaders["transfer-encoding"];
+        responseHeaders["content-length"] = String(responseBody.length);
         res.writeHead(upstream.status, responseHeaders);
-        res.end(Buffer.from(await upstream.arrayBuffer()));
+        res.end(responseBody);
       } catch (err) {
         res.writeHead(502, { "content-type": "application/json" });
         res.end(JSON.stringify({ error: { message: String(err) } }));
