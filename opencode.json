@@ -2,11 +2,12 @@
   "$schema": "https://opencode.ai/config.json",
   "provider": {
     "azure": {
-      "npm": "@ai-sdk/azure",
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "azure",
       "options": {
-        "baseURL": "{env:AZURE_API_BASE}/openai",
-        "apiVersion": "{env:AZURE_API_VERSION}",
-        "useDeploymentBasedUrls": true
+        "baseURL": "{env:AZURE_API_BASE}/openai/deployments/{env:AZURE_OPENAI_DEPLOYMENT}",
+        "queryParams": { "api-version": "{env:AZURE_API_VERSION}" },
+        "headers": { "api-key": "{env:AZURE_API_KEY}" }
       },
       "models": {
         "gpt-5.4": { "name": "gpt-5.4" },
