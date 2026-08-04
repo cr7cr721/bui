@@ -135,7 +135,9 @@ if (!diff.trim()) {
   process.exit(0);
 }
 
-const MAX_DIFF_CHARS = 120_000;
+const MAX_DIFF_CHARS = 40_000;
+const MAX_SPECS_CHARS = 8_000;
+const MAX_EXISTING_CHARS = 6_000;
 const truncatedDiff =
   diff.length > MAX_DIFF_CHARS ? `${diff.slice(0, MAX_DIFF_CHARS)}\n...[truncated]` : diff;
 
@@ -208,6 +210,8 @@ Review guidelines:
 - Avoid style-only feedback unless it impacts readability or safety.
 - Be concise. Only report actionable findings.
 - DO NOT repeat any feedback already listed under "Existing AI review comments".
+- Do one pass only. Do not iterate, re-check, or self-correct.
+- Return your final JSON immediately after the first pass.
 
 Output: Return ONLY a valid JSON object (no prose, no code fences) with shape:
 {
@@ -227,22 +231,22 @@ function buildUserPrompt(existing) {
   const existingBlock = existing.length
     ? existing
         .slice(0, 50)
-        .map((e, i) => `${i + 1}. [${e.path || "general"}${e.line ? `:${e.line}` : ""}] ${norm(e.body).slice(0, 400)}`)
+        .map((e, i) => `${i + 1}. [${e.path || "general"}${e.line ? `:${e.line}` : ""}] ${norm(e.body).slice(0, 250)}`)
         .join("\n")
     : "(none)";
 
   return `## Specs / Context
-${specs.slice(0, 20_000)}
+${specs.slice(0, MAX_SPECS_CHARS)}
 
 ## Existing AI review comments (do NOT repeat these)
-${existingBlock}
+${existingBlock.slice(0, MAX_EXISTING_CHARS)}
 
 ## PR Diff
 \`\`\`diff
 ${truncatedDiff}
 \`\`\`
 
-Review this PR and return JSON only.`;
+Review this PR and return JSON only. Keep the output short.`;
 }
 
 async function runOpencode(prompt) {
