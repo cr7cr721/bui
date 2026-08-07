@@ -163,7 +163,7 @@ function runAider(prompt, files) {
     `azure/${AZURE_DEPLOYMENT}`,
     "--yes",
     "--no-check-update",
-    "--no-git",           // we manage git ourselves for a clean commit message
+    "--no-git",
     "--message",
     prompt,
     ...files,
@@ -175,7 +175,6 @@ function runAider(prompt, files) {
     stdio: "inherit",
     env: {
       ...process.env,
-      // Ensure aider picks up Azure creds (LiteLLM env var names)
       AZURE_API_KEY: getEnv("AZURE_API_KEY"),
       AZURE_API_BASE: getEnv("AZURE_API_BASE"),
       AZURE_API_VERSION: getEnv("AZURE_API_VERSION"),
@@ -188,6 +187,11 @@ function runAider(prompt, files) {
 
   console.log(`\naider exited with code ${result.status}`);
   return result.status === 0;
+}
+
+function runFixDirect(prompt, files) {
+  // Host fallback: keep the same file selection and prompt, but avoid requiring Docker.
+  return runAider(prompt, files);
 }
 
 // ── git helpers ───────────────────────────────────────────────────────────────
@@ -231,7 +235,7 @@ async function main() {
   }
 
   const prompt = buildPrompt(comments);
-  const success = runAider(prompt, files);
+  const success = runFixDirect(prompt, files);
 
   if (!success) {
     console.error("aider exited with a non-zero status. Skipping commit.");
