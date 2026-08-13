@@ -3,7 +3,7 @@ name: PR Review Agent
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review]
-    branches: [development]
+    branches: [development, pr-review-agent]
 
 permissions:
   pull-requests: write
@@ -15,9 +15,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  bootstrap:
+    name: Bootstrap PR Review Agent
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "PR Review Agent workflow triggered for PR #${{ github.event.pull_request.number }}"
+
   review:
     if: ${{ !github.event.pull_request.draft }}
     runs-on: arc-runners
+    needs: bootstrap
 
     steps:
       - name: Checkout code
