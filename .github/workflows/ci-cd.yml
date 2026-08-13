@@ -7,6 +7,14 @@ on:
     branches: [development]
 
 jobs:
+  review-agent:
+    name: PR Review Agent
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Announce review agent
+        run: echo "PR Review Agent is enabled for PR #${{ github.event.pull_request.number }}"
+
   test:
     runs-on: arc-runners
 
