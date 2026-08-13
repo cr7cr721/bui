@@ -98,6 +98,35 @@ jobs:
           set -euo pipefail
           node .github/scripts/pr-review.mjs
 
+      - name: Resolve fix workflow path
+        if: steps.dedupe.outputs.skip != 'true'
+        id: fix_workflow
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_API_URL: ${{ github.api_url }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          for candidate in \
+            .github/workflows/pr-fix.yml \
+            .github/workflows/pr-fix.yaml \
+            pr-fix.yml \
+            pr-fix.yaml; do
+            code=$(curl -sS -o /tmp/workflow.out -w "%{http_code}" \
+              -H "Authorization: token ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "${GH_API_URL}/repos/${REPO}/contents/${candidate}")
+            if [ "$code" = "200" ]; then
+              echo "workflow_path=$candidate" >> "$GITHUB_OUTPUT"
+              echo "Found fix workflow at $candidate"
+              exit 0
+            fi
+          done
+          echo "Could not resolve fix workflow path"
+          cat /tmp/workflow.out || true
+          exit 1
+
       - name: Trigger fix agent
         if: steps.dedupe.outputs.skip != 'true'
         shell: bash
@@ -108,6 +137,7 @@ jobs:
           HEAD_BRANCH: ${{ github.head_ref }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          FIX_WORKFLOW_PATH: ${{ steps.fix_workflow.outputs.workflow_path }}
         run: |
           set -euo pipefail
 
@@ -120,7 +150,7 @@ jobs:
               "head_branch": "${HEAD_BRANCH}"
             }
           }
-          JSON
+JSON
           )
 
           http_code=$(curl -sS -o /tmp/dispatch.out -w "%{http_code}" \
@@ -128,7 +158,7 @@ jobs:
             -H "Authorization: token ${GH_TOKEN}" \
             -H "Accept: application/vnd.github+json" \
             -H "Content-Type: application/json" \
-            "${GH_API_URL}/repos/${REPO}/actions/workflows/pr-fix.yml/dispatches" \
+            "${GH_API_URL}/repos/${REPO}/actions/workflows/${FIX_WORKFLOW_PATH}/dispatches" \
             -d "${payload}")
 
           if [ "${http_code}" != "204" ]; then
