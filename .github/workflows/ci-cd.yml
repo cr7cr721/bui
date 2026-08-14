@@ -9,11 +9,62 @@ on:
 jobs:
   review-agent:
     name: PR Review Agent
-    runs-on: ubuntu-latest
+    runs-on: arc-runners
     if: github.event_name == 'pull_request'
+
     steps:
-      - name: Announce review agent
-        run: echo "PR Review Agent is enabled for PR #${{ github.event.pull_request.number }}"
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate review script exists
+        run: test -f .github/scripts/pr-review.mjs
+
+      - name: Validate context builder exists
+        run: test -f .github/scripts/build-context.mjs
+
+      - name: Build context inputs
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node .github/scripts/build-context.mjs
+
+      - name: Validate LLM env
+        shell: bash
+        env:
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          AZURE_OPENAI_ENDPOINT: ${{ vars.AZURE_OPENAI_ENDPOINT }}
+          AZURE_OPENAI_API_VERSION: ${{ vars.AZURE_OPENAI_API_VERSION }}
+          AZURE_OPENAI_DEPLOYMENT: ${{ vars.AZURE_OPENAI_DEPLOYMENT }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for k in AZURE_OPENAI_API_KEY AZURE_OPENAI_ENDPOINT AZURE_OPENAI_API_VERSION AZURE_OPENAI_DEPLOYMENT; do
+            if [ -z "${!k:-}" ]; then
+              echo "Missing required Azure config: $k"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 1 ] && exit 1 || true
+          echo "Azure OpenAI env looks good."
+
+      - name: Run PR review
+        shell: bash
+        env:
+          AZURE_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          AZURE_API_BASE: ${{ vars.AZURE_OPENAI_ENDPOINT }}
+          AZURE_API_VERSION: ${{ vars.AZURE_OPENAI_API_VERSION }}
+          AZURE_OPENAI_DEPLOYMENT: ${{ vars.AZURE_OPENAI_DEPLOYMENT }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_API_URL: ${{ github.api_url }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          node .github/scripts/pr-review.mjs
 
   test:
     runs-on: arc-runners
