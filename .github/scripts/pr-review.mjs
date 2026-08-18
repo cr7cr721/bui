@@ -43,6 +43,11 @@ const specs = (() => {
 
 if (!diff.trim()) {
   console.log("Empty diff, skipping review.");
+  writeFileSync(
+    "/tmp/review-findings.json",
+    JSON.stringify({ prNumber: Number(PR_NUMBER), commitSha: COMMIT_SHA, findings: [], hasFindings: false, generatedAt: new Date().toISOString() }, null, 2),
+    "utf-8"
+  );
   process.exit(0);
 }
 
@@ -222,13 +227,15 @@ async function main() {
   findings = findings.filter((f) => !isDuplicate(f, existing));
   console.log(`After dedup vs existing comments: ${findings.length} (removed ${before - findings.length})`);
 
+  const hasFindings = findings.length > 0;
+
   writeFileSync(
     "/tmp/review-findings.json",
-    JSON.stringify({ prNumber: Number(PR_NUMBER), commitSha: COMMIT_SHA, findings, generatedAt: new Date().toISOString() }, null, 2),
+    JSON.stringify({ prNumber: Number(PR_NUMBER), commitSha: COMMIT_SHA, findings, hasFindings, generatedAt: new Date().toISOString() }, null, 2),
     "utf-8"
   );
 
-  if (findings.length === 0) {
+  if (!hasFindings) {
     console.log("No new findings to post.");
     process.exit(0);
   }

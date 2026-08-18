@@ -105,8 +105,24 @@ jobs:
           set -euo pipefail
           node .github/scripts/pr-review.mjs
 
-      - name: Resolve fix workflow path
+      - name: Read review findings summary
         if: steps.dedupe.outputs.skip != 'true'
+        id: findings
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f /tmp/review-findings.json ]; then
+            echo "has_findings=false" >> "$GITHUB_OUTPUT"
+            echo "No structured review artifact found."
+            exit 0
+          fi
+
+          has_findings=$(node -e 'const fs=require("fs"); const p=JSON.parse(fs.readFileSync("/tmp/review-findings.json","utf8")); process.stdout.write(p.hasFindings ? "true" : "false")')
+          echo "has_findings=$has_findings" >> "$GITHUB_OUTPUT"
+          echo "Review findings present: $has_findings"
+
+      - name: Resolve fix workflow path
+        if: steps.dedupe.outputs.skip != 'true' && steps.findings.outputs.has_findings == 'true'
         id: fix_workflow
         shell: bash
         env:
@@ -135,7 +151,7 @@ jobs:
           exit 1
 
       - name: Trigger fix agent
-        if: steps.dedupe.outputs.skip != 'true'
+        if: steps.dedupe.outputs.skip != 'true' && steps.findings.outputs.has_findings == 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -147,6 +163,11 @@ jobs:
           FIX_WORKFLOW_PATH: ${{ steps.fix_workflow.outputs.workflow_path }}
         run: |
           set -euo pipefail
+
+          if [ -z "${FIX_WORKFLOW_PATH:-}" ]; then
+            echo "Missing FIX_WORKFLOW_PATH; aborting dispatch."
+            exit 1
+          fi
 
           payload=$(cat <<JSON
           {
@@ -169,9 +190,13 @@ JSON
             -d "${payload}")
 
           if [ "${http_code}" != "204" ]; then
-            echo "Warning: failed to dispatch pr-fix workflow. HTTP ${http_code}"
+            echo "Failed to dispatch pr-fix workflow. HTTP ${http_code}"
             cat /tmp/dispatch.out
-            exit 0
+            exit 1
           fi
 
           echo "pr-fix workflow dispatched successfully."
+
+      - name: Explain skipped fix dispatch
+        if: steps.dedupe.outputs.skip != 'true' && steps.findings.outputs.has_findings != 'true'
+        run: echo "No actionable findings were produced, so fix dispatch was intentionally skipped."
