@@ -178,7 +178,6 @@ jobs:
               "head_branch": "${HEAD_BRANCH}"
             }
           }
-JSON
           )
 
           http_code=$(curl -sS -o /tmp/dispatch.out -w "%{http_code}" \
